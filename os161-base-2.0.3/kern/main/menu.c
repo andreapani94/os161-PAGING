@@ -45,6 +45,7 @@
 #include <test.h>
 #include "opt-sfs.h"
 #include "opt-net.h"
+#include "opt-paging.h"
 
 /*
  * In-kernel menu and command dispatcher.
@@ -576,6 +577,9 @@ static const char *testmenu[] = {
 #if OPT_NET
 	"[net] Network test                  ",
 #endif
+#if OPT_PAGING
+	"[pg1] Paging test 1				 ",
+#endif
 	"[sy1] Semaphore test                ",
 	"[sy2] Lock test             (1)     ",
 	"[sy3] CV test               (1)     ",
@@ -716,6 +720,11 @@ static struct {
 	{ "fs4",	writestress2 },
 	{ "fs5",	longstress },
 	{ "fs6",	createstress },
+
+#if OPT_PAGING
+	/* paging tests */
+	{ "pg1", 	mydumbtest },
+#endif
 
 	{ NULL, NULL }
 };

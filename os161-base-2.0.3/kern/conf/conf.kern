@@ -406,6 +406,7 @@ defoption filesys
 defoption paging
 
 optfile   paging    vm/vmstats.c
+optfile   paging    vm/coremap.c
 
 ########################################
 #                                      #
@@ -461,3 +462,4 @@ file		test/semunit.c
 file		test/kmalloctest.c
 file		test/fstest.c
 optfile net	test/nettest.c
+optfile paging test/pagingtest.c

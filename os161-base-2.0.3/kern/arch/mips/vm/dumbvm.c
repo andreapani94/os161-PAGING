@@ -40,6 +40,7 @@
 #include <vm.h>
 
 #include "vmstats.h"
+#include "coremap.h"
 #include "opt-paging.h"
 /*
  * Dumb MIPS-only "VM system" that is intended to only be just barely
@@ -106,6 +107,11 @@ vm_bootstrap(void)
 	spinlock_acquire(&freemem_lock);
 	alloc_table_active = true;
 	spinlock_release(&freemem_lock);
+
+	/* just for the time being */
+	#if OPT_PAGING
+	free_frames_init();
+	#endif
 
 }
 

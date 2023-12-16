@@ -62,6 +62,7 @@ void vm_tlbshootdown(const struct tlbshootdown *);
 
 #if OPT_PAGING
 void vm_shutdown(void);
+
 #endif
 
 

@@ -10,5 +10,6 @@ loadelf.o: ../../syscall/loadelf.c ../../include/types.h \
  ../../include/thread.h ../../include/array.h ../../include/threadlist.h \
  includelinks/machine/thread.h ../../include/setjmp.h \
  includelinks/kern/machine/setjmp.h ../../include/addrspace.h \
- ../../include/vm.h includelinks/machine/vm.h opt-paging.h opt-dumbvm.h \
- ../../include/vnode.h ../../include/elf.h includelinks/machine/elf.h
+ ../../include/vm.h includelinks/machine/vm.h opt-paging.h \
+ ../../include/pt.h opt-dumbvm.h ../../include/vnode.h \
+ ../../include/elf.h includelinks/machine/elf.h

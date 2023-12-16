@@ -11,5 +11,6 @@ dumbvm.o: ../../arch/mips/vm/dumbvm.c ../../include/types.h \
  ../../include/thread.h ../../include/array.h \
  includelinks/machine/thread.h ../../include/setjmp.h \
  includelinks/kern/machine/setjmp.h includelinks/mips/tlb.h \
- ../../include/addrspace.h ../../include/vm.h opt-paging.h opt-dumbvm.h \
- ../../include/vmstats.h ../../include/coremap.h
+ ../../include/addrspace.h ../../include/vm.h opt-paging.h \
+ ../../include/pt.h opt-dumbvm.h ../../include/vmstats.h \
+ ../../include/coremap.h

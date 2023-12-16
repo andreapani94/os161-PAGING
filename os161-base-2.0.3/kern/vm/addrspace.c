@@ -34,16 +34,22 @@
 #include <vm.h>
 #include <proc.h>
 
+#include "opt-paging.h"
+
 /*
  * Note! If OPT_DUMBVM is set, as is the case until you start the VM
  * assignment, this file is not compiled or linked or in any way
  * used. The cheesy hack versions in dumbvm.c are used instead.
  */
 
+#if OPT_DUMBVM
+#else
+
 struct addrspace *
 as_create(void)
 {
 	struct addrspace *as;
+	int i;
 
 	as = kmalloc(sizeof(struct addrspace));
 	if (as == NULL) {
@@ -53,6 +59,14 @@ as_create(void)
 	/*
 	 * Initialize as needed.
 	 */
+	#if OPT_PAGING
+	as->page_table = kmalloc(sizeof(pt_entry) * PT_SIZE);
+	if (as->page_table == NULL) {
+		return NULL;
+	}
+	// automatically make every entry invalid 
+	bzero(as->page_table, sizeof(pt_entry) * PT_SIZE);
+	#endif
 
 	return as;
 }
@@ -130,9 +144,27 @@ int
 as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
 		 int readable, int writeable, int executable)
 {
-	/*
-	 * Write this.
-	 */
+	#if OPT_PAGING
+	size_t npages;
+	int i;
+
+	/* Align the region. First, the base... */
+	sz += vaddr & ~(vaddr_t)PAGE_FRAME;
+	vaddr &= PAGE_FRAME;
+
+	/* ...and now the length. */
+	sz = (sz + PAGE_SIZE - 1) & PAGE_FRAME;
+
+	npages = sz / PAGE_SIZE;
+
+	/* set every page table entry attributes */
+	for (i = 0; i < npages; i++) {
+		as->page_table[PT_INDEX(vaddr)].isvalid = 1;
+		as->page_table[PT_INDEX(vaddr)].isreadable = 1 ? 0 : readable;
+		as->page_table[PT_INDEX(vaddr)].iswriteable = 1 ? 0 : writeable;
+		as->page_table[PT_INDEX(vaddr)].isvalid = 1 ? 0 : executable;
+	}
+	#endif
 
 	(void)as;
 	(void)vaddr;
@@ -149,7 +181,9 @@ as_prepare_load(struct addrspace *as)
 	/*
 	 * Write this.
 	 */
-
+	#if OPT_PAGING
+	/* get the frames addresses into the page table */
+	#endif
 	(void)as;
 	return 0;
 }
@@ -179,4 +213,6 @@ as_define_stack(struct addrspace *as, vaddr_t *stackptr)
 
 	return 0;
 }
+
+#endif
 

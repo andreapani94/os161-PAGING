@@ -37,7 +37,6 @@
 #include <current.h>
 #include <mips/tlb.h>
 #include <addrspace.h>
-#include <vm.h>
 
 #include "vmstats.h"
 #include "coremap.h"
@@ -107,11 +106,6 @@ vm_bootstrap(void)
 	spinlock_acquire(&freemem_lock);
 	alloc_table_active = true;
 	spinlock_release(&freemem_lock);
-
-	/* just for the time being */
-	#if OPT_PAGING
-	free_frames_init();
-	#endif
 
 }
 
@@ -199,7 +193,7 @@ getppages(unsigned long npages)
 	} 
 
 	return addr;
-}
+} 
 
 static 
 void
@@ -266,9 +260,6 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	uint32_t ehi, elo;
 	struct addrspace *as;
 	int spl;
-
-	/* VM stats */
-	vms.vms_tlbfaults++;
 
 	faultaddress &= PAGE_FRAME;
 

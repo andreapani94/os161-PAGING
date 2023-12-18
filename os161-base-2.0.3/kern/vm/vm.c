@@ -4,14 +4,14 @@
 #include <kern/errno.h>
 #include <current.h>
 #include <mips/tlb.h>
+#include <addrspace.h>
+#include <spl.h>
+#include <proc.h>
 #include "pt.h"
-
-#if OPT_DUMBVM
-#else
+#include "coremap.h"
 
 static struct spinlock stealmem_lock = SPINLOCK_INITIALIZER;
 
-static
 paddr_t
 getppages(unsigned long npages)
 {
@@ -25,6 +25,7 @@ getppages(unsigned long npages)
 
 	return addr;
 }
+
 
 void
 vm_bootstrap()
@@ -41,8 +42,6 @@ vm_shutdown()
 int 
 vm_fault(int faulttype, vaddr_t faultaddress)
 {
-	#if OPT_DUMBVM
-	#else
     struct addrspace* as;
     paddr_t paddr;
     int i;
@@ -82,6 +81,11 @@ vm_fault(int faulttype, vaddr_t faultaddress)
     /* for now assume that all pages have been loaded in the */
     /* page table (NO DEMAND PAGING) */
     paddr = pt_translate(as, faultaddress);
+	if (paddr == 0) {
+		// allocate a frame
+		paddr = coremap_alloc();
+		pt_insert(as, faultaddress, paddr);
+	}
 
     /* make sure it's page-aligned */
 	KASSERT((paddr & PAGE_FRAME) == paddr);
@@ -106,7 +110,6 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	splx(spl);
 	return EFAULT;
 
-	#endif
     (void) faulttype;
     (void) faultaddress;
     return 0;
@@ -136,5 +139,4 @@ vm_tlbshootdown(const struct tlbshootdown *tlbshootdown)
     (void) tlbshootdown;
 }
 
-#endif
 

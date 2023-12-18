@@ -7,4 +7,4 @@ addrspace.o: ../../vm/addrspace.c ../../include/types.h \
  ../../include/spinlock.h ../../include/hangman.h opt-hangman.h \
  includelinks/machine/spinlock.h ../../include/synch.h opt-synch.h \
  ../../include/limits.h ../../include/kern/limits.h opt-waitpid.h \
- opt-filesys.h
+ opt-filesys.h ../../include/coremap.h ../../include/pt.h

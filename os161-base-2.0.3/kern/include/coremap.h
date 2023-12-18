@@ -6,8 +6,8 @@
 
 #if OPT_PAGING
 
-void free_frames_init(void);
-int free_frames_alloc(void);
+void coremap_init(void);
+paddr_t coremap_alloc(void);
 
 #endif
 

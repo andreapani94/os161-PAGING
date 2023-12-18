@@ -7,5 +7,8 @@ vm.o: ../../vm/vm.c ../../include/types.h ../../include/kern/types.h \
  ../../include/thread.h ../../include/array.h ../../include/lib.h \
  opt-noasserts.h ../../include/threadlist.h includelinks/machine/thread.h \
  ../../include/setjmp.h includelinks/kern/machine/setjmp.h \
- includelinks/mips/tlb.h ../../include/pt.h ../../include/addrspace.h \
- ../../include/pt.h opt-dumbvm.h
+ includelinks/mips/tlb.h ../../include/addrspace.h ../../include/pt.h \
+ opt-dumbvm.h ../../include/spl.h ../../include/proc.h \
+ ../../include/synch.h opt-synch.h ../../include/limits.h \
+ ../../include/kern/limits.h opt-waitpid.h opt-filesys.h \
+ ../../include/pt.h ../../include/coremap.h

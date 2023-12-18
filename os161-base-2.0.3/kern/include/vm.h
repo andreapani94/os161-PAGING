@@ -38,7 +38,7 @@
 
 
 #include <machine/vm.h>
-
+#include <types.h>
 #include "opt-paging.h"
 
 /* Fault-type arguments to vm_fault() */
@@ -62,7 +62,7 @@ void vm_tlbshootdown(const struct tlbshootdown *);
 
 #if OPT_PAGING
 void vm_shutdown(void);
-
+paddr_t getppages(unsigned long npages);
 #endif
 
 

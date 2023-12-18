@@ -9,7 +9,7 @@ struct addrspace;
 #define PT_SIZE (MIPS_KSEG0 / PAGE_SIZE)
 #define PT_INDEX(vaddr) (vaddr / PAGE_SIZE)
 
-struct pt_entry{
+struct pt_entry {
     paddr_t paddr;
     uint8_t isvalid;
     uint8_t isreadable;

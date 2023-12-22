@@ -97,6 +97,7 @@ int nettest(int, char **);
 
 /* paging tests (PROJECT C1)*/
 int mydumbtest(int, char **);
+int tlbtest(int, char **);
 
 /* Routine for running a user-level program. */
 int runprogram(char *progname, unsigned int argc, char **args);

@@ -3,7 +3,6 @@
 
 #include "opt-paging.h"
 
-#if OPT_PAGING
 
 /* struct needed by print_vm_stats in order to display statistics about vm */
 struct vmstats {
@@ -19,6 +18,5 @@ extern struct vmstats vms;
 
 /* Prints a bunch of statistics related to the virtual memory subsystem */
 void print_vm_stats(void);
-#endif
 
 #endif /* _VM_STATS_H */

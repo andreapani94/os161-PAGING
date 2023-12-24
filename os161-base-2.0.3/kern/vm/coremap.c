@@ -7,26 +7,41 @@
 #include <spinlock.h>
 #include "coremap.h"
 
-#if OPT_DUMBVM
-#else 
-
-//static struct bitmap* free_frames = NULL;
+// bitmap initialization
+static struct coremap_entry* coremap = NULL;
+static uint32_t num_frames;
 
 void
 coremap_init()
 {
-    // /* get size of RAM */
-    // size_t ramsize = ram_getsize();
+    uint32_t i;
+    paddr_t firstfree;
 
-    // /* number of frames */
-    // uint32_t frames_num = ramsize / PAGE_SIZE;
+    /* Find number of frames to manage */
+    num_frames = ram_getsize() / PAGE_SIZE;
 
-    // /* initialize the bitmap */
-    // free_frames = bitmap_create(frames_num);
-    // if (free_frames == NULL) {
-    //     panic("Unable to initialize free frames list!");
-    // }
-    // KASSERT(free_frames != NULL);
+    /* Initialize the coremap */
+    coremap = kmalloc(sizeof(struct coremap_entry) * num_frames);
+    if (coremap == NULL) {
+        panic("Cannot initialize the coremap!");
+    }
+    KASSERT(coremap != NULL);
+
+    /* get first free physical address */
+    /* some frames are already occupied by the kernel */
+    /* since vm_bootstrap is called after the bootstrap of the kernel */
+    firstfree = ram_getfirstfree();
+
+    /* Initialize frames status */
+    for (i = 0; i < num_frames; i++) {
+        if (i < COREMAP_INDEX(firstfree)) {
+            /* frames occupied by the kernel */
+            coremap[i].is_free = false;
+        } else {
+            /* free to use by user processes */
+            coremap[i].is_free = true;
+        }
+    }
     return;
 }
 
@@ -34,22 +49,21 @@ coremap_init()
 paddr_t
 coremap_alloc()
 {
+    uint32_t i;
     paddr_t paddr;
 
-    paddr = getppages(1);
+    // synchronization? or in the calling function?
 
-    // /* unsigned int frame_index = 0;
+    /* search the coremap for a free frame */
+    for (i = 0; i < num_frames; i++) {
+        if (coremap[i].is_free) {
+            paddr = i * PAGE_SIZE;
+            coremap[i].is_free = false;
+            return paddr;
+        }
+    }
 
+    /* if not call the page replacement algorithm */
 
-    // /* there is a free frame in the list */
-    // if (bitmap_alloc(free_frames, &frame_index) == 0) {
-    //     KASSERT(bitmap_isset(free_frames, frame_index));
-
-    // } else {
-    //     /* no free frame left (ENOSPC)*/
-    // } */
-    
     return paddr;
 }
-
-#endif

@@ -4,11 +4,13 @@
 #include "opt-paging.h"
 #include <types.h>
 
-#if OPT_PAGING
+#define COREMAP_INDEX(paddr) (paddr / PAGE_SIZE)
+
+struct coremap_entry {
+    bool is_free;
+};
 
 void coremap_init(void);
 paddr_t coremap_alloc(void);
-
-#endif
 
 #endif

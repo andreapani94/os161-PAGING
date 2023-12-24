@@ -3,6 +3,7 @@
 #include "vmtlb.h"
 #include <lib.h>
 #include <kern/errno.h>
+#include "vmstats.h"
 
 static 
 int
@@ -27,12 +28,15 @@ vmtlb_insert(vaddr_t vaddr, paddr_t paddr)
     for (i = 0; i < NUM_TLB; i++) {
         tlb_read(&ehi, &elo, i);
         if (elo & TLBLO_VALID) {
+            /* not free */
             continue;
         }
+        /* free entry is found */
         DEBUG(DB_VM, "dumbvm: 0x%x -> 0x%x\n", vaddr, paddr);
         ehi = vaddr;
         elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
         tlb_write(ehi, elo, i);
+        vms.vms_tlbfaultsfree++;
         return 0;
     }
     /* if not */
@@ -46,6 +50,7 @@ vmtlb_insert(vaddr_t vaddr, paddr_t paddr)
     ehi = vaddr;
     elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
     tlb_write(ehi, elo, (uint32_t) victim);
+    vms.vms_tlbfaultsreplace++;
     return 0;
 }
 

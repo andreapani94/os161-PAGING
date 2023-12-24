@@ -8,7 +8,9 @@
 #include <spl.h>
 #include <proc.h>
 #include "pt.h"
+#include "vmtlb.h"
 #include "coremap.h"
+#include "vmstats.h"
 
 static struct spinlock stealmem_lock = SPINLOCK_INITIALIZER;
 
@@ -30,13 +32,14 @@ getppages(unsigned long npages)
 void
 vm_bootstrap()
 {
-
+	/* initialize the coremap */
+	coremap_init();
 }
 
 void 
 vm_shutdown()
 {
-
+	print_vm_stats();
 }
 
 int 
@@ -47,6 +50,10 @@ vm_fault(int faulttype, vaddr_t faultaddress)
     int i;
 	uint32_t ehi, elo;
     int spl;
+
+	/* a page fault occurred */
+	vms.vms_tlbfaults++;
+
     /* extract the page number using a bit mask */
     faultaddress &= PAGE_FRAME;
 
@@ -85,6 +92,10 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		// allocate a frame
 		paddr = coremap_alloc();
 		pt_insert(as, faultaddress, paddr);
+	} else {
+		/* page already in memory */
+		/* TLB reload */
+		vms.vms_tlbreloads++;
 	}
 
     /* make sure it's page-aligned */
@@ -93,20 +104,8 @@ vm_fault(int faulttype, vaddr_t faultaddress)
     /* Disable interrupts on this CPU while frobbing the TLB. */
 	spl = splhigh();
 
-	for (i = 0; i < NUM_TLB; i++) {
-		tlb_read(&ehi, &elo, i);
-		if (elo & TLBLO_VALID) {
-			continue;
-		}
-		ehi = faultaddress;
-		elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
-		DEBUG(DB_VM, "dumbvm: 0x%x -> 0x%x\n", faultaddress, paddr);
-		tlb_write(ehi, elo, i);
-		splx(spl);
-		return 0;
-	}
+	vmtlb_insert(faultaddress, paddr);
 
-	kprintf("dumbvm: Ran out of TLB entries - cannot handle page fault\n");
 	splx(spl);
 	return EFAULT;
 

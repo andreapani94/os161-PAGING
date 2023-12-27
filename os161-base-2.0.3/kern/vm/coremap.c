@@ -38,7 +38,7 @@ coremap_init()
             /* frames occupied by the kernel */
             coremap[i].is_free = false;
         } else {
-            /* free to use by user processes */
+            /* free to use by kernel and user processes */
             coremap[i].is_free = true;
         }
     }
@@ -46,11 +46,16 @@ coremap_init()
 }
 
 
+/* 
+ * This function is used to find and allocate a frame for
+ * user programs. Only 1 frame at a time can be allocated 
+ * according to paging
+*/
 paddr_t
 coremap_alloc()
 {
     uint32_t i;
-    paddr_t paddr;
+    paddr_t paddr = 0;
 
     // synchronization? or in the calling function?
 
@@ -59,7 +64,7 @@ coremap_alloc()
         if (coremap[i].is_free) {
             paddr = i * PAGE_SIZE;
             coremap[i].is_free = false;
-            return paddr;
+            break;
         }
     }
 
@@ -67,3 +72,39 @@ coremap_alloc()
 
     return paddr;
 }
+
+/*
+ * This function is used to find and allocate a number of 
+ * contiguos frames for the kernel, since the kernel doesn't
+ * implement paging but the coremap still allocates by frame
+*/
+
+paddr_t
+coremap_kalloc(unsigned npages)
+{
+    uint32_t i, first = 0, last = 0;
+    paddr_t paddr = 0;  // the starting physical address
+
+    /* search for a sequence of free frames */
+    for (i = 0; i < num_frames; i++) {
+        if (coremap[i].is_free) {
+            if ((i == 0) | !coremap[i-1].is_free) {
+                first = i;
+            }
+            if ((i - first)+1 >= npages) {
+                last = i;
+                paddr = first * PAGE_SIZE;
+                break;
+            }
+        }
+        
+    }
+
+    /* mark frames as allocated */
+    for (i = first; i < (last - first)+1; i++) {
+        coremap[i].is_free = false;
+    }   
+
+    return paddr;
+}
+

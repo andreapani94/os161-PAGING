@@ -19,5 +19,6 @@ struct pt_entry {
 
 paddr_t pt_translate(struct addrspace* as, vaddr_t);
 int pt_insert(struct addrspace*, vaddr_t, paddr_t);
+struct pt_entry* pt_get(struct addrspace* as, vaddr_t);
 
 #endif

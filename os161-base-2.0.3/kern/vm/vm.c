@@ -13,18 +13,30 @@
 #include "vmstats.h"
 
 static struct spinlock stealmem_lock = SPINLOCK_INITIALIZER;
+static bool vm_initialized = false;
 
 paddr_t
-getppages(unsigned long npages)
+getppages(unsigned npages)
 {
 	paddr_t addr;
 
-    /* before vm_bootstrap() or no freed frames available */
-    spinlock_acquire(&stealmem_lock);
-    addr = ram_stealmem(npages);
-    spinlock_release(&stealmem_lock);
+	if (vm_initialized) {
+		/* VM manager has taken over */
+		// assert that the user is not allocating more than one page
+		if (npages == 1) {
+			// user program
+			addr = coremap_alloc();
+		} else {
+			// kernel
+			addr = coremap_kalloc(npages);
+		}
+	} else {
+		/* early initialization (kernel) */
+		spinlock_acquire(&stealmem_lock);
+		addr = ram_stealmem(npages);
+		spinlock_release(&stealmem_lock);
+	}
 	
-
 	return addr;
 }
 
@@ -34,6 +46,7 @@ vm_bootstrap()
 {
 	/* initialize the coremap */
 	coremap_init();
+	vm_initialized = true;
 }
 
 void 
@@ -47,9 +60,8 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 {
     struct addrspace* as;
     paddr_t paddr;
-    int i;
-	uint32_t ehi, elo;
-    int spl;
+    int res, spl;
+	struct pt_entry* entry;
 
 	/* a page fault occurred */
 	vms.vms_tlbfaults++;
@@ -60,6 +72,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
     switch (faulttype) {
 	    case VM_FAULT_READONLY:
 		/* Handle the read-only case by terminating the process */
+			break;
 	    case VM_FAULT_READ:
 	    case VM_FAULT_WRITE:
 		    break;
@@ -87,11 +100,17 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 
     /* for now assume that all pages have been loaded in the */
     /* page table (NO DEMAND PAGING) */
-    paddr = pt_translate(as, faultaddress);
+    //paddr = pt_translate(as, faultaddress);
+	entry = pt_get(as, faultaddress);
+	if (entry == NULL) {
+		return EFAULT;
+	}
+	paddr = entry->paddr;
 	if (paddr == 0) {
 		// allocate a frame
-		paddr = coremap_alloc();
+		paddr = getppages(1);
 		pt_insert(as, faultaddress, paddr);
+		KASSERT(entry->paddr == paddr);
 	} else {
 		/* page already in memory */
 		/* TLB reload */
@@ -101,29 +120,28 @@ vm_fault(int faulttype, vaddr_t faultaddress)
     /* make sure it's page-aligned */
 	KASSERT((paddr & PAGE_FRAME) == paddr);
 
-    /* Disable interrupts on this CPU while frobbing the TLB. */
 	spl = splhigh();
 
-	vmtlb_insert(faultaddress, paddr);
+	res = vmtlb_insert(faultaddress, paddr, true);
 
 	splx(spl);
-	return EFAULT;
 
     (void) faulttype;
     (void) faultaddress;
-    return 0;
+    return res;
 }
 
 vaddr_t 
 alloc_kpages(unsigned npages)
 {
-    paddr_t pa;
+    paddr_t paddr;
 
-	pa = getppages(npages);
-	if (pa==0) {
+	paddr = getppages(npages);
+	if (paddr == 0) {
 		return 0;
 	}
-	return PADDR_TO_KVADDR(pa);
+	
+	return PADDR_TO_KVADDR(paddr);
 }
 
 void 

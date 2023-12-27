@@ -34,8 +34,10 @@
 #include <vm.h>
 #include <proc.h>
 #include <coremap.h>
+#include <spl.h>
 #include "pt.h"
 #include "opt-paging.h"
+#include "vmtlb.h"
 
 
 /*
@@ -102,6 +104,7 @@ as_destroy(struct addrspace *as)
 void
 as_activate(void)
 {
+	int spl;
 	struct addrspace *as;
 
 	as = proc_getas();
@@ -116,6 +119,11 @@ as_activate(void)
 	/*
 	 * Write this.
 	 */
+	spl = splhigh();
+
+	vmtlb_reset();
+
+	splx(spl);
 }
 
 void
@@ -189,7 +197,7 @@ as_prepare_load(struct addrspace *as)
 	/* get frame addresses into the page table */
 	for (i = 0; i < PT_SIZE; i++) {
 		if (as->page_table[i].isvalid) {
-			as->page_table[i].paddr = coremap_alloc();
+			as->page_table[i].paddr = getppages(1); //coremap_alloc();
 		}
 	}
 	#endif

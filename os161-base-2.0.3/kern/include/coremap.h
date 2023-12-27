@@ -12,5 +12,6 @@ struct coremap_entry {
 
 void coremap_init(void);
 paddr_t coremap_alloc(void);
+paddr_t coremap_kalloc(unsigned);
 
 #endif

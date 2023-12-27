@@ -38,9 +38,6 @@
 #include <mips/tlb.h>
 #include <addrspace.h>
 
-#include "vmstats.h"
-#include "coremap.h"
-#include "opt-paging.h"
 /*
  * Dumb MIPS-only "VM system" that is intended to only be just barely
  * enough to struggle off the ground. You should replace all of this
@@ -546,13 +543,3 @@ as_copy(struct addrspace *old, struct addrspace **ret)
 	*ret = new;
 	return 0;
 }
-
-#if OPT_PAGING
-/* temporary implementation, to be moved into new vm file */
-void
-vm_shutdown(void)
-{
-	print_vm_stats();
-}
-
-#endif

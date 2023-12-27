@@ -40,7 +40,7 @@ tlbtest(int nargs, char** args)
     i++;
     vaddr = (vaddr + (i * PAGE_SIZE));
     paddr = (paddr + (i * PAGE_SIZE)) | TLBLO_DIRTY | TLBLO_VALID;
-    int res = vmtlb_insert(vaddr, paddr);
+    int res = vmtlb_insert(vaddr, paddr, true);
     if (res != 0) {
         kprintf("Cannot insert a new entry, TLB completely filled...\n");
         kprintf("TLB test failed...\n");

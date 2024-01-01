@@ -11,7 +11,7 @@
 
 static struct vnode* swapfile = NULL;
 static struct swapfile_entry* swapfile_map = NULL;
-static struct spinlock swapfile_lock = SPINLOCK_INITIALIZER;
+//static struct spinlock swapfile_lock = SPINLOCK_INITIALIZER;
 static struct bitmap* swapfile_freeentries = NULL;
 
 int
@@ -23,7 +23,7 @@ swapfile_init()
     /* Try to open the SWAPFILE */
     result = vfs_open(swapfile_path, O_RDWR | O_CREAT, 0, &swapfile);
     if (result) {
-        panic("Cannot open SWAPFILE!\n");
+        kprintf("Cannot open the SWAPFILE!\n");
         return result;
     }
     KASSERT(swapfile != NULL);
@@ -32,7 +32,7 @@ swapfile_init()
     /* for page retreival in the file */
     swapfile_map = kmalloc(sizeof(struct swapfile_entry) * SWAPFILE_MAX_PAGES);
     if (swapfile_map == NULL) {
-        panic("Cannot initialize swapfile map...\n");
+        kprintf("Cannot initialize swapfile map...\n");
         return ENOMEM;
     }
     KASSERT(swapfile_map != NULL);
@@ -40,7 +40,7 @@ swapfile_init()
     /* Initialize the bitmap of free entries */
     swapfile_freeentries = bitmap_create(SWAPFILE_MAX_PAGES);
     if (swapfile_freeentries == NULL) {
-        panic("Cannot initialize swapfile bitmap...\n");
+        panic("Cannot initialize swapfile free bitmap...\n");
         return ENOMEM;
     }
     KASSERT(swapfile_freeentries != NULL);
@@ -49,7 +49,7 @@ swapfile_init()
 }
 
 int 
-swapfile_writepage(struct addrspace* as, vaddr_t pageaddr)
+swapfile_writepage(struct addrspace* as, paddr_t pageaddr)
 {
     struct iovec iov;
     struct uio ku;
@@ -58,7 +58,7 @@ swapfile_writepage(struct addrspace* as, vaddr_t pageaddr)
 
     KASSERT(as != NULL);
 
-    spinlock_acquire(&swapfile_lock);
+    //spinlock_acquire(&swapfile_lock);
     /* find a free entry in the SWAPFILE */
     result = bitmap_alloc(swapfile_freeentries, &index);
     if (result) {
@@ -66,7 +66,7 @@ swapfile_writepage(struct addrspace* as, vaddr_t pageaddr)
         return result;
     }
     /* write the content of the page into the SWAPFILE */
-    uio_kinit(&iov, &ku, (void*) pageaddr, PAGE_SIZE, index*PAGE_SIZE, UIO_WRITE);
+    uio_kinit(&iov, &ku, (void*) PADDR_TO_KVADDR(pageaddr), PAGE_SIZE, index*PAGE_SIZE, UIO_WRITE);
     result = VOP_WRITE(swapfile, &ku);
     if (result) {
         return result;
@@ -76,9 +76,9 @@ swapfile_writepage(struct addrspace* as, vaddr_t pageaddr)
     }
     /* update the swapfile map */
     swapfile_map[index].as = as;
-    swapfile_map[index].vaddr = pageaddr;
+    swapfile_map[index].paddr = pageaddr;
 
-    spinlock_release(&swapfile_lock);
+    //spinlock_release(&swapfile_lock);
 
     return 0;
 }
@@ -95,14 +95,14 @@ swapfile_readpage(struct addrspace* as, vaddr_t pageaddr)
 
     KASSERT(as != NULL);
 
-    spinlock_acquire(&swapfile_lock);
+    //spinlock_acquire(&swapfile_lock);
 
     /* find the offset in which the page is located in the SWAPFILE */
     for (i = 0; i < SWAPFILE_MAX_PAGES; i++) {
-        if (swapfile_map[i].as == as && swapfile_map[i].vaddr == pageaddr) {
+        if (swapfile_map[i].as == as && swapfile_map[i].paddr == pageaddr) {
             index = i;
             swapfile_map[i].as = 0;
-            swapfile_map[i].vaddr = 0;
+            swapfile_map[i].paddr = 0;
             break;
         }
     }
@@ -112,7 +112,7 @@ swapfile_readpage(struct addrspace* as, vaddr_t pageaddr)
     KASSERT(index >= 0);
 
     /* read the content of the page from the swapfile */
-    uio_kinit(&iov, &ku, (void*) pageaddr, PAGE_SIZE, index*PAGE_SIZE, UIO_READ);
+    uio_kinit(&iov, &ku, (void*) PADDR_TO_KVADDR(pageaddr), PAGE_SIZE, index*PAGE_SIZE, UIO_READ);
     result = VOP_READ(swapfile, &ku);
     if (result) {
         return result;
@@ -124,7 +124,7 @@ swapfile_readpage(struct addrspace* as, vaddr_t pageaddr)
     /* mark the entry in the SWAPFILE as free */
     bitmap_unmark(swapfile_freeentries, index);
 
-    spinlock_release(&swapfile_lock);
+    //spinlock_release(&swapfile_lock);
 
     return 0;
 }

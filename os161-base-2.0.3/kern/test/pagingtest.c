@@ -4,6 +4,10 @@
 #include <mips/tlb.h>
 #include <vmtlb.h>
 #include <vm.h>
+#include <swapfile.h>
+#include <addrspace.h>
+#include <copyinout.h>
+#include <coremap.h>
 
 int
 mydumbtest(int nargs, char** args)
@@ -47,5 +51,60 @@ tlbtest(int nargs, char** args)
     } else {
         kprintf("TLB test completed!\n");
     }
+    return 0;
+}
+
+int 
+swapfiletest(int nargs, char** args)
+{
+    (void)nargs;
+	(void)args;
+    int result;
+    int i, sum1 = 0, sum2 = 0;
+    struct addrspace* as;
+
+    kprintf("Starting swapfile test...\n");
+    kprintf("Trying to open the swapfile and initialize associated structures...\n");
+    result = swapfile_init();
+    if (result) {
+        kprintf("Swapfile test failed...\n");
+        return 1;
+    }
+    kprintf("Initialization successful!\n");
+    /* simulate page envinronment */
+    as = as_create();
+    uint8_t* page_content = kmalloc(PAGE_SIZE);
+    for (i = 0; i < PAGE_SIZE; i++) {
+        page_content[i] = i;
+        sum1 += page_content[i];
+    }
+    kprintf("The sum of all numbers contained in the page is %d\n", sum1);
+    kprintf("Trying to swap out a page...\n");
+    result = swapfile_writepage(as, (paddr_t) page_content - MIPS_KSEG0);
+    if (result) {
+        kprintf("Swapfile test failed...\n");
+        return 1;
+    }
+    kprintf("Swap out successful!\n");
+    kprintf("Zeroing out the memory previously occupied by the page...\n");
+    bzero(page_content, PAGE_SIZE);
+    for (i = 0; i < PAGE_SIZE; i++) {
+        sum2 += page_content[i];
+    }
+    KASSERT(sum2 == 0);
+    kprintf("The sum of all numbers contained in the page is %d\n", sum2);
+    kprintf("Trying to swap in the same page...\n");
+    result = swapfile_readpage(as, (paddr_t) page_content - MIPS_KSEG0);
+    if (result) {
+        kprintf("Swapfile test failed...\n");
+        return 1;
+    }
+    kprintf("Swap out successful!\n");
+    for (i = 0; i < PAGE_SIZE; i++) {
+        sum2 += page_content[i];
+    }
+    kprintf("The sum of all numbers contained in the page is %d\n", sum2);
+    KASSERT(sum1 == sum2);
+    kprintf("Swapfile test completed successfully!\n");
     return 0;
 }

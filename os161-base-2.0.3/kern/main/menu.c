@@ -579,6 +579,7 @@ static const char *testmenu[] = {
 #endif
 #if OPT_PAGING
 	"[pg1] Paging test 1				 ",
+	"[pg2] Swapfile test				 ",
 	"[tlb] TLB test					     ",
 #endif
 	"[sy1] Semaphore test                ",
@@ -725,6 +726,7 @@ static struct {
 #if OPT_PAGING
 	/* paging tests */
 	{ "pg1", 	mydumbtest },
+	{ "pg2", 	swapfiletest },
 	{ "tlb", 	tlbtest	},
 #endif
 

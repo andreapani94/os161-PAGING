@@ -1,46 +1,64 @@
 #include <types.h>
 #include <lib.h>
 #include <vm.h>
-#include <errno.h>
-#include "pt.h"
+#include <kern/errno.h>
+#include <pt.h>
 #include <addrspace.h>
+#include <coremap.h>
 #include "opt-paging.h"
 
 static 
 void
 inner_pt_create(struct pt_entry_1* outer_pt, uint32_t outer_pt_index)
 {
-    uint32_t outer_pt_index;
-
-    KASSERT(pt != NULL);
+    KASSERT(outer_pt != NULL);
 
     outer_pt[outer_pt_index].inner_pt = kmalloc(sizeof(struct pt_entry_2) * INNER_PT_SIZE);
-    if (as->page_table[outer_pt_index] == NULL) {
+    if (outer_pt[outer_pt_index].inner_pt == NULL) {
         panic("Cannot create an inner page table!");
     } 
 }
 
 static 
 int
-load_page(struct addrspace* as, vaddr_t vaddr)
+pt_load(struct addrspace* as, vaddr_t vaddr)
 {
+    struct segment* s;
+    uint32_t file_offset;
+    int res;
     KASSERT(as != NULL);
+    KASSERT(as->segments != NULL);
 
-    
+    s = segments_find_segment(as->segments, vaddr);
+    if (s == NULL) {
+        return 1;
+    }
+    /* set up the offset into the file */
+    KASSERT(s->elf_segment_start % PAGE_SIZE == 0);
+    file_offset = vaddr - s->elf_segment_start;
+    KASSERT(file_offset % PAGE_SIZE == 0);
+    res = load_page(as, s->elf_file, vaddr, file_offset, s->executable);
+    if (res) {
+        return res;
+    }
+
+    return 0;
 }
 
 
 paddr_t 
 pt_translate(struct addrspace* as, vaddr_t vaddr)
 {
-    struct pt_entry_1* inner_pt;
-    paddr_t paddr;
+    struct pt_entry_2* inner_pt;
+    struct pt_entry_2 pt_entry;
+    paddr_t paddr = 0;
+    int res;
 
     KASSERT(as != NULL);
     KASSERT(as->page_table != NULL);
 
     
-    inner_pt = as->page_table[outer_pt_index];
+    inner_pt = as->page_table[OUTER_PT_INDEX(vaddr)].inner_pt;
     if (inner_pt == NULL) {
         /* first time access to a page */
         /* no inner page table has been created */
@@ -48,17 +66,31 @@ pt_translate(struct addrspace* as, vaddr_t vaddr)
         inner_pt_create(as->page_table, OUTER_PT_INDEX(vaddr));
         /* allocate a frame for the new page */
         paddr = coremap_alloc();
+        /* update the page_table */
+        inner_pt = as->page_table[OUTER_PT_INDEX(vaddr)].inner_pt;
+        KASSERT(inner_pt != NULL);
+        pt_entry = inner_pt[INNER_PT_INDEX(vaddr)];
+        pt_entry.paddr = paddr;
+        pt_entry.dirty = false;
+        pt_entry.swapped = false;
         /* bring the page in from the ELF file */
-
+        /* as now vm_fault will use the pt for translation */
+        res = pt_load(as, vaddr);
+        if (res) {
+            panic("Cannot bring a page in memory, cannot translate!");
+        }
 
     } else {
-        /* simply translate */
-        /* swapped case */
-
+       pt_entry = inner_pt[INNER_PT_INDEX(vaddr)];
+       if (pt_entry.swapped) {
+            /* bring the page in from the SWAPFILE */
+            /* TODO */
+       } else {
+            /* standard translation */
+            paddr = pt_entry.paddr;
+       }
     }
-    (void) as;
-    (void) vaddr;
-    return 0;
+    return paddr;
 }
 
 int

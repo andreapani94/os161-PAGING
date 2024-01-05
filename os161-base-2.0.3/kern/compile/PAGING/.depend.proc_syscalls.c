@@ -11,5 +11,6 @@ proc_syscalls.o: ../../syscall/proc_syscalls.c ../../include/types.h \
  ../../include/threadlist.h includelinks/machine/thread.h \
  ../../include/setjmp.h includelinks/kern/machine/setjmp.h \
  ../../include/addrspace.h ../../include/vm.h includelinks/machine/vm.h \
- opt-paging.h ../../include/segments.h ../../include/pt.h opt-dumbvm.h \
- ../../include/current.h includelinks/machine/current.h
+ opt-paging.h ../../include/segments.h ../../include/vnode.h \
+ ../../include/pt.h opt-dumbvm.h ../../include/current.h \
+ includelinks/machine/current.h

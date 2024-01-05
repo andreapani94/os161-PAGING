@@ -161,7 +161,7 @@ as_deactivate(void)
  */
 int
 as_define_region(struct addrspace *as, uint8_t seg_index, vaddr_t vaddr, size_t sz,
-		 int readable, int writeable, int executable)
+		 int readable, int writeable, int executable, struct vnode* v, uint32_t offset)
 {
 	#if OPT_PAGING
 	size_t npages;
@@ -187,6 +187,8 @@ as_define_region(struct addrspace *as, uint8_t seg_index, vaddr_t vaddr, size_t 
 	s->readable = readable;
 	s->writable = writeable;
 	s->executable = executable;
+	s->elf_file = v;
+	s->elf_segment_start = offset;
 
 	return 0;
 	#else

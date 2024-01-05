@@ -106,7 +106,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		return EFAULT;
 	}
 
-	
+	paddr = pt_translate(as, faultaddress);
 
     /* make sure it's page-aligned */
 	KASSERT((paddr & PAGE_FRAME) == paddr);

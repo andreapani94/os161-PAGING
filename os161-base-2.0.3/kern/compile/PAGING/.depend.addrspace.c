@@ -3,9 +3,10 @@ addrspace.o: ../../vm/addrspace.c ../../include/types.h \
  includelinks/machine/types.h ../../include/kern/errno.h \
  ../../include/lib.h ../../include/cdefs.h opt-noasserts.h \
  ../../include/addrspace.h ../../include/vm.h includelinks/machine/vm.h \
- opt-paging.h ../../include/segments.h ../../include/pt.h opt-dumbvm.h \
- ../../include/proc.h ../../include/spinlock.h ../../include/hangman.h \
- opt-hangman.h includelinks/machine/spinlock.h ../../include/synch.h \
- opt-synch.h ../../include/limits.h ../../include/kern/limits.h \
- opt-waitpid.h opt-filesys.h ../../include/coremap.h ../../include/spl.h \
+ opt-paging.h ../../include/segments.h ../../include/vnode.h \
+ ../../include/spinlock.h ../../include/hangman.h opt-hangman.h \
+ includelinks/machine/spinlock.h ../../include/pt.h opt-dumbvm.h \
+ ../../include/proc.h ../../include/synch.h opt-synch.h \
+ ../../include/limits.h ../../include/kern/limits.h opt-waitpid.h \
+ opt-filesys.h ../../include/coremap.h ../../include/spl.h \
  ../../include/pt.h ../../include/vmtlb.h

@@ -8,7 +8,7 @@ segments_valid_address(struct segment* segments, vaddr_t vaddr)
     struct segment* s;
 
     for (i = 0; i < NUM_SEGMENTS; i++) {
-        s = &segments[0];
+        s = &segments[i];
         if (vaddr >= s->vbase && vaddr <= s->vtop) {
             /* within boundaries = VALID ADDRESS */
             return 0;

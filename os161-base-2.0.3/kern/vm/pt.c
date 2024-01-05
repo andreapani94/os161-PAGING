@@ -6,8 +6,7 @@
 #include <addrspace.h>
 #include <coremap.h>
 #include "opt-paging.h"
-
-static 
+ 
 void
 inner_pt_create(struct pt_entry_1* outer_pt, uint32_t outer_pt_index)
 {
@@ -17,14 +16,16 @@ inner_pt_create(struct pt_entry_1* outer_pt, uint32_t outer_pt_index)
     if (outer_pt[outer_pt_index].inner_pt == NULL) {
         panic("Cannot create an inner page table!");
     } 
+    bzero(outer_pt[outer_pt_index].inner_pt, sizeof(struct pt_entry_2) * INNER_PT_SIZE);
 }
 
-static 
+
 int
-pt_load(struct addrspace* as, vaddr_t vaddr)
+pt_load(struct addrspace* as, vaddr_t vaddr, paddr_t paddr)
 {
     struct segment* s;
     uint32_t file_offset;
+    uint32_t page_index;
     int res;
     KASSERT(as != NULL);
     KASSERT(as->segments != NULL);
@@ -35,13 +36,14 @@ pt_load(struct addrspace* as, vaddr_t vaddr)
     }
     /* set up the offset into the file */
     KASSERT(s->elf_segment_start % PAGE_SIZE == 0);
-    file_offset = vaddr - s->elf_segment_start;
+    page_index = vaddr - s->vbase;
+    file_offset = s->elf_segment_start + page_index;
     KASSERT(file_offset % PAGE_SIZE == 0);
     res = load_page(as, s->elf_file, vaddr, file_offset, s->executable);
     if (res) {
         return res;
     }
-
+    (void) paddr;
     return 0;
 }
 
@@ -69,13 +71,14 @@ pt_translate(struct addrspace* as, vaddr_t vaddr)
         /* update the page_table */
         inner_pt = as->page_table[OUTER_PT_INDEX(vaddr)].inner_pt;
         KASSERT(inner_pt != NULL);
-        pt_entry = inner_pt[INNER_PT_INDEX(vaddr)];
-        pt_entry.paddr = paddr;
-        pt_entry.dirty = false;
-        pt_entry.swapped = false;
+        inner_pt[INNER_PT_INDEX(vaddr)].paddr = paddr;
+        inner_pt[INNER_PT_INDEX(vaddr)].dirty = false;
+        inner_pt[INNER_PT_INDEX(vaddr)].swapped = false;
+        KASSERT(paddr == inner_pt[INNER_PT_INDEX(vaddr)].paddr);
         /* bring the page in from the ELF file */
         /* as now vm_fault will use the pt for translation */
-        res = pt_load(as, vaddr);
+        res = pt_load(as, vaddr, 0);
+        /* return paddr when spostata in vm_fault*/
         if (res) {
             panic("Cannot bring a page in memory, cannot translate!");
         }

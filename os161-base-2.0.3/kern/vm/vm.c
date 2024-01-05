@@ -63,6 +63,8 @@ vm_fault(int faulttype, vaddr_t faultaddress)
     struct addrspace* as;
     paddr_t paddr;
     int res, spl;
+	struct pt_entry_2* inner_pt;
+	//bool was_swapped;
 
 	/* a page fault occurred */
 	vms.vms_tlbfaults++;
@@ -106,7 +108,77 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		return EFAULT;
 	}
 
-	paddr = pt_translate(as, faultaddress);
+	/* PAGE FAULT HANDLING */
+	inner_pt = as->page_table[OUTER_PT_INDEX(faultaddress)].inner_pt;
+	if (inner_pt == NULL) {
+        /* first time access to a page */
+        /* no inner page table has been created */
+        /* create the page table */
+        inner_pt_create(as->page_table, OUTER_PT_INDEX(faultaddress));
+		/* allocate a frame for the new page */
+        paddr = coremap_alloc();
+        /* update the page_table */
+        inner_pt = as->page_table[OUTER_PT_INDEX(faultaddress)].inner_pt;
+        KASSERT(inner_pt != NULL);
+        inner_pt[INNER_PT_INDEX(faultaddress)].paddr = paddr;
+		inner_pt[INNER_PT_INDEX(faultaddress)].valid = true;
+        inner_pt[INNER_PT_INDEX(faultaddress)].dirty = false;
+        inner_pt[INNER_PT_INDEX(faultaddress)].swapped = false;
+        KASSERT(paddr == inner_pt[INNER_PT_INDEX(faultaddress)].paddr);
+		/* insert into the TLB */
+		spl = splhigh();
+		res = vmtlb_insert(faultaddress, paddr, true);
+		splx(spl);
+		/* bring the page in from the ELF file */
+        /* as now vm_fault will use the pt for translation */
+        res = pt_load(as, faultaddress, paddr);
+        if (res) {
+            panic("Cannot bring a page in memory, cannot translate!");
+        }
+		return 0;
+	} else {
+		if (inner_pt[INNER_PT_INDEX(faultaddress)].swapped) {
+			/* bring the page in from the SWAPFILE */
+            /* TODO */
+			paddr = 0;
+		} else if (!inner_pt[INNER_PT_INDEX(faultaddress)].valid) {
+			/* first time access to a page */
+			/* inner page table already created */
+			/* allocate a frame for the new page */
+			paddr = coremap_alloc();
+			/* update the page_table */
+			inner_pt = as->page_table[OUTER_PT_INDEX(faultaddress)].inner_pt;
+			KASSERT(inner_pt != NULL);
+			inner_pt[INNER_PT_INDEX(faultaddress)].paddr = paddr;
+			inner_pt[INNER_PT_INDEX(faultaddress)].valid = true;
+			inner_pt[INNER_PT_INDEX(faultaddress)].dirty = false;
+			inner_pt[INNER_PT_INDEX(faultaddress)].swapped = false;
+			KASSERT(paddr == inner_pt[INNER_PT_INDEX(faultaddress)].paddr);
+			/* bring the page in from the ELF file */
+			/* as now vm_fault will use the pt for translation */
+			res = pt_load(as, faultaddress, paddr);
+			if (res) {
+				panic("Cannot bring a page in memory, cannot translate!");
+			}
+			/* insert into the TLB */
+			spl = splhigh();
+			res = vmtlb_insert(faultaddress, paddr, true);
+			splx(spl);
+			return 0;
+		} 
+		else {
+			/* TLB reload */
+			paddr = inner_pt[INNER_PT_INDEX(faultaddress)].paddr;
+		}
+
+		spl = splhigh();
+		res = vmtlb_insert(faultaddress, paddr, true);
+		splx(spl);
+		
+		return res;
+		
+	}
+	
 
     /* make sure it's page-aligned */
 	KASSERT((paddr & PAGE_FRAME) == paddr);

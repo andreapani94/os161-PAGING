@@ -117,7 +117,6 @@ void              as_deactivate(void);
 void              as_destroy(struct addrspace *);
 #if OPT_PAGING
 int               as_define_region(struct addrspace *as,
-                                   uint8_t seg_index,
                                    vaddr_t vaddr, size_t sz,
                                    int readable,
                                    int writeable,
@@ -126,7 +125,6 @@ int               as_define_region(struct addrspace *as,
                                    uint32_t offset);
 #else
 int               as_define_region(struct addrspace *as,
-                                   uint8_t seg_index,
                                    vaddr_t vaddr, size_t sz,
                                    int readable,
                                    int writeable,
@@ -146,8 +144,7 @@ int               as_define_stack(struct addrspace *as, vaddr_t *initstackptr);
 
 int load_elf(struct vnode *v, vaddr_t *entrypoint);
 #if OPT_PAGING
-int load_page(struct addrspace* as, struct vnode* v,
-		vaddr_t vaddr, uint32_t offset, bool is_executable);
+int load_page(struct addrspace*, struct vnode* v, vaddr_t vaddr, uint32_t offset, bool is_executable);
 #endif
 
 

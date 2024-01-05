@@ -11,7 +11,7 @@
 
 static struct vnode* swapfile = NULL;
 static struct swapfile_entry* swapfile_map = NULL;
-//static struct spinlock swapfile_lock = SPINLOCK_INITIALIZER;
+static struct spinlock swapfile_lock = SPINLOCK_INITIALIZER;
 static struct bitmap* swapfile_freeentries = NULL;
 
 int
@@ -60,11 +60,14 @@ swapfile_writepage(struct addrspace* as, paddr_t pageaddr)
 
     //spinlock_acquire(&swapfile_lock);
     /* find a free entry in the SWAPFILE */
+    spinlock_acquire(&swapfile_lock);
     result = bitmap_alloc(swapfile_freeentries, &index);
     if (result) {
         panic("Out of swap space\n");
         return result;
     }
+    spinlock_release(&swapfile_lock);
+
     /* write the content of the page into the SWAPFILE */
     uio_kinit(&iov, &ku, (void*) PADDR_TO_KVADDR(pageaddr), PAGE_SIZE, index*PAGE_SIZE, UIO_WRITE);
     result = VOP_WRITE(swapfile, &ku);
@@ -122,7 +125,9 @@ swapfile_readpage(struct addrspace* as, vaddr_t pageaddr)
     }
 
     /* mark the entry in the SWAPFILE as free */
+    spinlock_acquire(&swapfile_lock);
     bitmap_unmark(swapfile_freeentries, index);
+    spinlock_release(&swapfile_lock);
 
     //spinlock_release(&swapfile_lock);
 

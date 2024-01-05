@@ -36,6 +36,7 @@
 
 
 #include <vm.h>
+#include <segments.h>
 #include "pt.h"
 #include "opt-dumbvm.h"
 #include "opt-paging.h"
@@ -62,7 +63,8 @@ struct addrspace {
 #endif
         /* Put stuff here for your VM system */
 #if OPT_PAGING
-        struct pt_entry* page_table;
+        struct pt_entry_1* page_table;
+        struct segment* segments;
 #endif
 
 };
@@ -115,6 +117,7 @@ void              as_deactivate(void);
 void              as_destroy(struct addrspace *);
 
 int               as_define_region(struct addrspace *as,
+                                   uint8_t seg_index,
                                    vaddr_t vaddr, size_t sz,
                                    int readable,
                                    int writeable,

@@ -6,15 +6,19 @@
 
 struct addrspace;
 
-#define PT_SIZE (MIPS_KSEG0 / PAGE_SIZE)
-#define PT_INDEX(vaddr) (vaddr / PAGE_SIZE)
+#define OUTER_PT_SIZE 1024 /* 10 leftmost bits of the virtual address */
+#define INNER_PT_SIZE 1024
+#define OUTER_PT_INDEX(vaddr) (vaddr >> 22)
+#define INNER_PT_INDEX(vaddr) (vaddr >> 12) & 0x3FF
 
-struct pt_entry {
+struct pt_entry_1 {
+    struct pt_entry_2* inner_pt;
+};
+
+struct pt_entry_2 {
     paddr_t paddr;
-    uint8_t isvalid;
-    uint8_t isreadable;
-    uint8_t iswriteable;
-    uint8_t isexecutable;
+    bool dirty;
+    bool swapped;
 };
 
 paddr_t pt_translate(struct addrspace* as, vaddr_t);

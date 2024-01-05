@@ -38,6 +38,7 @@
 #include "pt.h"
 #include "opt-paging.h"
 #include "vmtlb.h"
+#include "segments.h"
 
 
 /*
@@ -61,12 +62,21 @@ as_create(void)
 	 * Initialize as needed.
 	 */
 	#if OPT_PAGING
-	as->page_table = kmalloc(sizeof(struct pt_entry) * PT_SIZE);
+	/* initialize the outer page table */
+	as->page_table = kmalloc(sizeof(struct pt_entry_1) * OUTER_PT_SIZE);
 	if (as->page_table == NULL) {
+		kfree(as);
 		return NULL;
 	}
-	// automatically make every entry invalid 
-	bzero(as->page_table, sizeof(struct pt_entry) * PT_SIZE);
+	bzero(as->page_table, sizeof(struct pt_entry_1) * OUTER_PT_SIZE);
+
+	/* initialize segments */
+	as->segments = kmalloc(sizeof(struct segment) * NUM_SEGMENTS);
+	if (as->segments == NULL) {
+		kfree(as->page_table);
+		kfree(as);
+		return NULL;
+	}
 	#endif
 	return as;
 }
@@ -97,7 +107,10 @@ as_destroy(struct addrspace *as)
 	/*
 	 * Clean up as needed.
 	 */
-
+	#if OPT_PAGING
+	kfree(as->page_table);
+	kfree(as->segments);
+	#endif
 	kfree(as);
 }
 
@@ -147,12 +160,14 @@ as_deactivate(void)
  * want to implement them.
  */
 int
-as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz,
+as_define_region(struct addrspace *as, uint8_t seg_index, vaddr_t vaddr, size_t sz,
 		 int readable, int writeable, int executable)
 {
 	#if OPT_PAGING
 	size_t npages;
-	uint32_t i, pt_index;
+	struct segment* s;
+
+	KASSERT(as != NULL);
 
 	/* Align the region. First, the base... */
 	sz += vaddr & ~(vaddr_t)PAGE_FRAME;
@@ -162,15 +177,16 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz,
 	sz = (sz + PAGE_SIZE - 1) & PAGE_FRAME;
 
 	npages = sz / PAGE_SIZE;
+	
+	/* find the right segment */
+	s = &as->segments[seg_index];
 
-	/* set every page table entry attributes */
-	for (i = 0; i < npages; i++) {
-		pt_index = (vaddr + (i * PAGE_SIZE)) / PAGE_SIZE;
-		as->page_table[pt_index].isvalid = 1;
-		as->page_table[pt_index].isreadable = readable ? 1 : 0;
-		as->page_table[pt_index].iswriteable = writeable ? 1 : 0;
-		as->page_table[pt_index].isvalid = executable ? 1 : 0;
-	}
+	/* set attributes up */
+	s->vbase = vaddr;
+	s->vtop = vaddr + (npages * PAGE_SIZE);
+	s->readable = readable;
+	s->writable = writeable;
+	s->executable = executable;
 
 	return 0;
 	#else
@@ -192,14 +208,8 @@ as_prepare_load(struct addrspace *as)
 	 * Write this.
 	 */
 	#if OPT_PAGING
-	uint32_t i;
-
-	/* get frame addresses into the page table */
-	for (i = 0; i < PT_SIZE; i++) {
-		if (as->page_table[i].isvalid) {
-			as->page_table[i].paddr = getppages(1); //coremap_alloc();
-		}
-	}
+	/* nothing happens as a pure demand paging scheme */
+	/* doesn't allocate any frame until a reference is made */
 	#endif
 	(void)as;
 	return 0;

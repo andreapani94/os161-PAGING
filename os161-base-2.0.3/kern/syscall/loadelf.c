@@ -60,6 +60,8 @@
 #include <vnode.h>
 #include <elf.h>
 
+#include "opt-paging.h"
+
 /*
  * Load a segment at virtual address VADDR. The segment in memory
  * extends from VADDR up to (but not including) VADDR+MEMSIZE. The
@@ -74,6 +76,20 @@
  * change this code to not use uiomove, be sure to check for this case
  * explicitly.
  */
+
+#if OPT_PAGING
+static 
+int
+load_page(struct addrspace* as, struct vnode* v,
+			vaddr_t vaddr)
+{
+	int result;
+
+	return result;
+}
+#endif
+
+#if !OPT_PAGING
 static
 int
 load_segment(struct addrspace *as, struct vnode *v,
@@ -93,7 +109,7 @@ load_segment(struct addrspace *as, struct vnode *v,
 	DEBUG(DB_EXEC, "ELF: Loading %lu bytes to 0x%lx\n",
 	      (unsigned long) filesize, (unsigned long) vaddr);
 
-	iov.iov_ubase = (userptr_t)vaddr;
+	iov.iov_ubase = (userptr_t) vaddr;
 	iov.iov_len = memsize;		 // length of the memory space
 	u.uio_iov = &iov;
 	u.uio_iovcnt = 1;
@@ -144,6 +160,8 @@ load_segment(struct addrspace *as, struct vnode *v,
 
 	return result;
 }
+
+#endif
 
 /*
  * Load an ELF executable user program into the current address space.
@@ -244,6 +262,7 @@ load_elf(struct vnode *v, vaddr_t *entrypoint)
 		}
 
 		result = as_define_region(as,
+					  i,
 					  ph.p_vaddr, ph.p_memsz,
 					  ph.p_flags & PF_R,
 					  ph.p_flags & PF_W,
@@ -261,7 +280,7 @@ load_elf(struct vnode *v, vaddr_t *entrypoint)
 	/*
 	 * Now actually load each segment.
 	 */
-
+	#if !OPT_PAGING
 	for (i=0; i<eh.e_phnum; i++) {
 		off_t offset = eh.e_phoff + i*eh.e_phentsize;
 		uio_kinit(&iov, &ku, &ph, sizeof(ph), offset, UIO_READ);
@@ -295,6 +314,8 @@ load_elf(struct vnode *v, vaddr_t *entrypoint)
 			return result;
 		}
 	}
+
+	#endif
 
 	result = as_complete_load(as);
 	if (result) {

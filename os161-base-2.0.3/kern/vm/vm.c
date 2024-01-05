@@ -12,6 +12,8 @@
 #include "coremap.h"
 #include "vmstats.h"
 
+#include "opt-paging.h"
+
 static struct spinlock stealmem_lock = SPINLOCK_INITIALIZER;
 static bool vm_initialized = false;
 
@@ -61,7 +63,6 @@ vm_fault(int faulttype, vaddr_t faultaddress)
     struct addrspace* as;
     paddr_t paddr;
     int res, spl;
-	struct pt_entry* entry;
 
 	/* a page fault occurred */
 	vms.vms_tlbfaults++;
@@ -98,24 +99,14 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		return EFAULT;
 	}
 
-    /* for now assume that all pages have been loaded in the */
-    /* page table (NO DEMAND PAGING) */
-    //paddr = pt_translate(as, faultaddress);
-	entry = pt_get(as, faultaddress);
-	if (entry == NULL) {
+	/* check if the faulting address is VALID */
+	res = segments_valid_address(as->segments, faultaddress);
+	if (res) {
+		/* terminate process? */
 		return EFAULT;
 	}
-	paddr = entry->paddr;
-	if (paddr == 0) {
-		// allocate a frame
-		paddr = getppages(1);
-		pt_insert(as, faultaddress, paddr);
-		KASSERT(entry->paddr == paddr);
-	} else {
-		/* page already in memory */
-		/* TLB reload */
-		vms.vms_tlbreloads++;
-	}
+
+	
 
     /* make sure it's page-aligned */
 	KASSERT((paddr & PAGE_FRAME) == paddr);

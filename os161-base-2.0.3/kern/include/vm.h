@@ -63,6 +63,7 @@ void vm_tlbshootdown(const struct tlbshootdown *);
 #if OPT_PAGING
 void vm_shutdown(void);
 paddr_t getppages(unsigned npages);
+void freeppages(paddr_t, unsigned);
 #endif
 
 

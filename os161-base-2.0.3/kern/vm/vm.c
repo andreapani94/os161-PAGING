@@ -7,10 +7,11 @@
 #include <addrspace.h>
 #include <spl.h>
 #include <proc.h>
-#include "pt.h"
-#include "vmtlb.h"
-#include "coremap.h"
-#include "vmstats.h"
+#include <pt.h>
+#include <vmtlb.h>
+#include <coremap.h>
+#include <vmstats.h>
+#include <swapfile.h>
 
 #include "opt-paging.h"
 
@@ -42,12 +43,28 @@ getppages(unsigned npages)
 	return addr;
 }
 
+void
+freeppages(paddr_t paddr, unsigned npages)
+{
+	(void) npages;
+	if (vm_initialized) {
+		if (npages == 1) {
+			// user program
+			coremap_free(paddr);
+		} else {
+			// kernel
+			//coremap_kfree(npages);
+		}
+	}
+}
+
 
 void
 vm_bootstrap()
 {
 	/* initialize the coremap */
 	coremap_init();
+	//swapfile_init();
 	vm_initialized = true;
 }
 
@@ -101,11 +118,11 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	}
 
 
-	/* check if the faulting address is 
+	/* check if the faulting address is valid */
 	res = segments_valid_address(as->segments, faultaddress);
 	if (res) {
 		return EFAULT;
-	} */
+	} 
 
 	/* PAGE FAULT HANDLING */
 	inner_pt = as->page_table[OUTER_PT_INDEX(faultaddress)].inner_pt;
@@ -125,10 +142,8 @@ vm_fault(int faulttype, vaddr_t faultaddress)
         inner_pt[INNER_PT_INDEX(faultaddress)].swapped = false;
         KASSERT(paddr == inner_pt[INNER_PT_INDEX(faultaddress)].paddr);
 		/* bring the page in from the ELF file */
-        /* as now vm_fault will use the pt for translation */
         res = pt_load(as, faultaddress, paddr);
         if (res) {
-			// stack ignore it for now
             //panic("Cannot bring a page in memory, cannot translate!");
         }
 	} else {
@@ -150,15 +165,14 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 			inner_pt[INNER_PT_INDEX(faultaddress)].swapped = false;
 			KASSERT(paddr == inner_pt[INNER_PT_INDEX(faultaddress)].paddr);
 			/* bring the page in from the ELF file */
-			/* as now vm_fault will use the pt for translation */
 			res = pt_load(as, faultaddress, paddr);
 			if (res) {
-				// stack for now ignore
 				//panic("Cannot bring a page in memory, cannot translate!");
 			}
 		} 
 		else {
 			/* TLB reload */
+			vms.vms_tlbreloads++;
 			paddr = inner_pt[INNER_PT_INDEX(faultaddress)].paddr;
 		}		
 	}
@@ -194,6 +208,7 @@ alloc_kpages(unsigned npages)
 void 
 free_kpages(vaddr_t addr)
 {
+
     (void) addr;
 }
 

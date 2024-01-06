@@ -5,6 +5,7 @@
 #include <vnode.h>
 
 #define NUM_SEGMENTS 3      /* heap not implemented ! */
+#define STACK_PAGES 18
 
 struct segment {
     vaddr_t vbase;
@@ -15,7 +16,7 @@ struct segment {
     /* ELF file */
     struct vnode* elf_file;
     uint32_t elf_segment_start;
-
+    
 };
 
 int segments_valid_address(struct segment*, vaddr_t);

@@ -64,25 +64,36 @@ coremap_alloc()
         if (coremap[i].is_free) {
             paddr = i * PAGE_SIZE;
             coremap[i].is_free = false;
-            break;
+            return paddr;
         }
     }
 
     /* if not call the page replacement algorithm */
+    panic("No memory available anymore!");
 
     return paddr;
 }
 
 void
-coremap_free(paddr_t frame_num)
+coremap_free(paddr_t paddr)
 {
-    KASSERT(frame_num < num_frames);
-    KASSERT(!coremap[frame_num].is_free);
-    coremap[frame_num].is_free = true;
-    KASSERT(coremap[frame_num].is_free);
+    KASSERT(COREMAP_INDEX(paddr) < num_frames);
+    coremap[COREMAP_INDEX(paddr)].is_free = true;
+    KASSERT(coremap[COREMAP_INDEX(paddr)].is_free);
     return;
 }
 
+void
+coremap_kfree(paddr_t paddr, unsigned nframes)
+{
+    uint32_t i;
+
+    KASSERT(COREMAP_INDEX(paddr) < num_frames);
+    for (i = 0; i < nframes; i++) {
+        coremap[COREMAP_INDEX(paddr) + i].is_free = true;
+    }
+    return;
+}
 /*
  * This function is used to find and allocate a number of 
  * contiguos frames for the kernel, since the kernel doesn't
@@ -94,6 +105,7 @@ coremap_kalloc(unsigned npages)
 {
     uint32_t i, first = 0, last = 0;
     paddr_t paddr = 0;  // the starting physical address
+    bool found = false;
 
     /* search for a sequence of free frames */
     for (i = 0; i < num_frames; i++) {
@@ -104,16 +116,20 @@ coremap_kalloc(unsigned npages)
             if ((i - first)+1 >= npages) {
                 last = i;
                 paddr = first * PAGE_SIZE;
+                found = true;
                 break;
             }
-        }
-        
+        }  
     }
 
-    /* mark frames as allocated */
-    for (i = 0; i < (last - first)+1; i++) {
-        coremap[first+i].is_free = false;
-    }   
+    if (found) {
+        /* mark frames as allocated */
+        for (i = 0; i < (last - first)+1; i++) {
+            coremap[first+i].is_free = false;
+        }
+    } else {
+        panic("No memory available anymore!");
+    }
 
     return paddr;
 }

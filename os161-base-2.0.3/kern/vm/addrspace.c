@@ -35,10 +35,13 @@
 #include <proc.h>
 #include <coremap.h>
 #include <spl.h>
-#include "pt.h"
+#include <pt.h>
+#include <vmtlb.h>
+#include <segments.h>
+#include <vmstats.h>
+#include <vfs.h>
+
 #include "opt-paging.h"
-#include "vmtlb.h"
-#include "segments.h"
 
 
 /*
@@ -109,6 +112,7 @@ as_destroy(struct addrspace *as)
 	 */
 	#if OPT_PAGING
 	kfree(as->page_table);
+	vfs_close(as->segments[0].elf_file);
 	kfree(as->segments);
 	#endif
 	kfree(as);
@@ -137,6 +141,8 @@ as_activate(void)
 	vmtlb_reset();
 
 	splx(spl);
+
+	vms.vms_tlbinvalidations++;
 }
 
 void
@@ -234,14 +240,23 @@ as_complete_load(struct addrspace *as)
 int
 as_define_stack(struct addrspace *as, vaddr_t *stackptr)
 {
-	/*
-	 * Write this.
-	 */
+	struct segment* s;
 
-	(void)as;
+	KASSERT(as != NULL);
+	/* stack is the last segment */
+	s = &as->segments[NUM_SEGMENTS-1];
+	KASSERT(s != NULL);
 
 	/* Initial user-level stack pointer */
 	*stackptr = USERSTACK;
+
+	/* initialize the stack segment */
+	s->vbase = *stackptr - (STACK_PAGES*PAGE_SIZE);
+	s->vtop = *stackptr;
+	s->readable = true;
+	s->writable = true;
+	s->executable = false;
+	s->elf_file = NULL;
 
 	return 0;
 }

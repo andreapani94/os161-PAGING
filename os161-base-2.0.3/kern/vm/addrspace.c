@@ -112,6 +112,7 @@ as_destroy(struct addrspace *as)
 	 */
 	#if OPT_PAGING
 	kfree(as->page_table);
+	/* close the ELF file */
 	vfs_close(as->segments[0].elf_file);
 	kfree(as->segments);
 	#endif
@@ -166,13 +167,12 @@ as_deactivate(void)
  * want to implement them.
  */
 int
-as_define_region(struct addrspace *as,  vaddr_t vaddr, size_t sz,
+as_define_region(struct addrspace *as, int seg_index, vaddr_t vaddr, size_t sz,
 		 int readable, int writeable, int executable, struct vnode* v, uint32_t offset)
 {
 	#if OPT_PAGING
 	size_t npages;
 	struct segment* s;
-	static uint8_t seg_index = 0;
 
 	KASSERT(as != NULL);
 
@@ -196,8 +196,6 @@ as_define_region(struct addrspace *as,  vaddr_t vaddr, size_t sz,
 	s->executable = executable;
 	s->elf_file = v;
 	s->elf_segment_start = offset;
-
-	seg_index++;
 
 	return 0;
 	#else

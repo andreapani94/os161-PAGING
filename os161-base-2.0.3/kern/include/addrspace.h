@@ -117,6 +117,7 @@ void              as_deactivate(void);
 void              as_destroy(struct addrspace *);
 #if OPT_PAGING
 int               as_define_region(struct addrspace *as,
+                                   int seg_index,
                                    vaddr_t vaddr, size_t sz,
                                    int readable,
                                    int writeable,

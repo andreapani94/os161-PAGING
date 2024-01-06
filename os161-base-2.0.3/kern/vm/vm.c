@@ -64,7 +64,6 @@ vm_fault(int faulttype, vaddr_t faultaddress)
     paddr_t paddr;
     int res, spl;
 	struct pt_entry_2* inner_pt;
-	//bool was_swapped;
 
 	/* a page fault occurred */
 	vms.vms_tlbfaults++;
@@ -101,12 +100,12 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		return EFAULT;
 	}
 
-	/* check if the faulting address is VALID */
+
+	/* check if the faulting address is 
 	res = segments_valid_address(as->segments, faultaddress);
 	if (res) {
-		/* terminate process? */
 		return EFAULT;
-	}
+	} */
 
 	/* PAGE FAULT HANDLING */
 	inner_pt = as->page_table[OUTER_PT_INDEX(faultaddress)].inner_pt;
@@ -125,17 +124,13 @@ vm_fault(int faulttype, vaddr_t faultaddress)
         inner_pt[INNER_PT_INDEX(faultaddress)].dirty = false;
         inner_pt[INNER_PT_INDEX(faultaddress)].swapped = false;
         KASSERT(paddr == inner_pt[INNER_PT_INDEX(faultaddress)].paddr);
-		/* insert into the TLB */
-		spl = splhigh();
-		res = vmtlb_insert(faultaddress, paddr, true);
-		splx(spl);
 		/* bring the page in from the ELF file */
         /* as now vm_fault will use the pt for translation */
         res = pt_load(as, faultaddress, paddr);
         if (res) {
-            panic("Cannot bring a page in memory, cannot translate!");
+			// stack ignore it for now
+            //panic("Cannot bring a page in memory, cannot translate!");
         }
-		return 0;
 	} else {
 		if (inner_pt[INNER_PT_INDEX(faultaddress)].swapped) {
 			/* bring the page in from the SWAPFILE */
@@ -158,25 +153,14 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 			/* as now vm_fault will use the pt for translation */
 			res = pt_load(as, faultaddress, paddr);
 			if (res) {
-				panic("Cannot bring a page in memory, cannot translate!");
+				// stack for now ignore
+				//panic("Cannot bring a page in memory, cannot translate!");
 			}
-			/* insert into the TLB */
-			spl = splhigh();
-			res = vmtlb_insert(faultaddress, paddr, true);
-			splx(spl);
-			return 0;
 		} 
 		else {
 			/* TLB reload */
 			paddr = inner_pt[INNER_PT_INDEX(faultaddress)].paddr;
-		}
-
-		spl = splhigh();
-		res = vmtlb_insert(faultaddress, paddr, true);
-		splx(spl);
-		
-		return res;
-		
+		}		
 	}
 	
 

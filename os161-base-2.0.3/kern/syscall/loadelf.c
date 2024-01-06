@@ -79,14 +79,14 @@
 
 #if OPT_PAGING
 int
-load_page(struct addrspace* as, struct vnode* v, vaddr_t vaddr, uint32_t offset, bool is_executable)
+load_page(struct addrspace* as, struct vnode* v, paddr_t paddr, uint32_t offset, bool is_executable)
 {
 	struct iovec iov;
 	struct uio u;
 	int result;
 
-	//uio_kinit(&iov, &ku, (void*) PADDR_TO_KVADDR(paddr), PAGE_SIZE, offset, UIO_READ);
-
+	uio_kinit(&iov, &u, (void*) PADDR_TO_KVADDR(paddr), PAGE_SIZE, offset, UIO_READ);
+	/*
 	iov.iov_ubase = (userptr_t) vaddr;
 	iov.iov_len = PAGE_SIZE;
 	u.uio_iov = &iov;
@@ -95,10 +95,11 @@ load_page(struct addrspace* as, struct vnode* v, vaddr_t vaddr, uint32_t offset,
 	u.uio_offset = offset;
 	u.uio_segflg = is_executable ? UIO_USERISPACE : UIO_USERSPACE;
 	u.uio_rw = UIO_READ;
-	u.uio_space = as; 
+	u.uio_space = as;  */
 
 	result = VOP_READ(v, &u);
 
+	(void) as;
 	(void) is_executable;
 	return result;
 }

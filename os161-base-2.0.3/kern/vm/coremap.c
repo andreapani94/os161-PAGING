@@ -5,7 +5,7 @@
 #include <bitmap.h>
 #include <vm.h>
 #include <spinlock.h>
-#include "coremap.h"
+#include <coremap.h>
 
 // bitmap initialization
 static struct coremap_entry* coremap = NULL;
@@ -73,6 +73,16 @@ coremap_alloc()
     return paddr;
 }
 
+void
+coremap_free(paddr_t frame_num)
+{
+    KASSERT(frame_num < num_frames);
+    KASSERT(!coremap[frame_num].is_free);
+    coremap[frame_num].is_free = true;
+    KASSERT(coremap[frame_num].is_free);
+    return;
+}
+
 /*
  * This function is used to find and allocate a number of 
  * contiguos frames for the kernel, since the kernel doesn't
@@ -101,8 +111,8 @@ coremap_kalloc(unsigned npages)
     }
 
     /* mark frames as allocated */
-    for (i = first; i < (last - first)+1; i++) {
-        coremap[i].is_free = false;
+    for (i = 0; i < (last - first)+1; i++) {
+        coremap[first+i].is_free = false;
     }   
 
     return paddr;

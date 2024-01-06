@@ -98,6 +98,7 @@ int nettest(int, char **);
 /* paging tests (PROJECT C1)*/
 int mydumbtest(int, char **);
 int swapfiletest(int, char **);
+int coremaptest(int, char**);
 int tlbtest(int, char **);
 
 /* Routine for running a user-level program. */

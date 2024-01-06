@@ -24,7 +24,7 @@ segments_find_segment(struct segment* segments, vaddr_t vaddr)
     struct segment* s = NULL;
 
     for (i = 0; i < NUM_SEGMENTS; i++) {
-        s = &segments[0];
+        s = &segments[i];
         if (vaddr >= s->vbase && vaddr <= s->vtop) {
             /* this is the segment we are looking for */
             return s;

@@ -35,11 +35,11 @@ pt_load(struct addrspace* as, vaddr_t vaddr, paddr_t paddr)
         return 1;
     }
     /* set up the offset into the file */
-    KASSERT(s->elf_segment_start % PAGE_SIZE == 0);
+//    KASSERT(s->elf_segment_start % PAGE_SIZE == 0);
     page_index = vaddr - s->vbase;
     file_offset = s->elf_segment_start + page_index;
-    KASSERT(file_offset % PAGE_SIZE == 0);
-    res = load_page(as, s->elf_file, vaddr, file_offset, s->executable);
+    //KASSERT(file_offset % PAGE_SIZE == 0);
+    res = load_page(as, s->elf_file, paddr, file_offset, s->executable);
     if (res) {
         return res;
     }

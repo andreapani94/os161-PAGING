@@ -108,3 +108,34 @@ swapfiletest(int nargs, char** args)
     kprintf("Swapfile test completed successfully!\n");
     return 0;
 }
+
+int 
+coremaptest(int nargs, char** args)
+{
+    (void)nargs;
+	(void)args;
+    paddr_t frame1, frame2, kstartframe;
+
+    kprintf("Starting coremap test...\n");
+    kprintf("User allocation:\n");
+    kprintf("Trying to get two free frames...\n");
+    frame1 = coremap_alloc() / PAGE_SIZE;
+    kprintf("Obtained frame %d\n", frame1);
+    frame2 = coremap_alloc() / PAGE_SIZE;
+    KASSERT(frame1 == frame2-1);    // assuming single thread
+    kprintf("Obtained frame %d\n", frame2);
+    kprintf("Freeing both frames...\n");
+    coremap_free(frame1);
+    coremap_free(frame2);
+    kprintf("Kernel allocation:\n");
+    kprintf("Trying to get two consecutives frames...\n");
+    kstartframe = coremap_kalloc(2) / PAGE_SIZE;
+    kprintf("Obtained frame %d\n", kstartframe);
+    KASSERT(kstartframe == frame1);
+    kprintf("Another one...\n");
+    frame2 = coremap_kalloc(1) / PAGE_SIZE;
+    kprintf("Obtained frame %d\n", frame2);
+    KASSERT(frame2 == kstartframe+2);
+    kprintf("Coremap test completed!\n");
+    return 0;
+}

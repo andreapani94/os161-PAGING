@@ -68,7 +68,7 @@ pt_translate(struct addrspace* as, vaddr_t vaddr)
         /* create the page table*/
         inner_pt_create(as->page_table, OUTER_PT_INDEX(vaddr));
         /* allocate a frame for the new page */
-        paddr = coremap_alloc();
+        paddr = coremap_kalloc(1);
         /* update the page_table */
         inner_pt = as->page_table[OUTER_PT_INDEX(vaddr)].inner_pt;
         KASSERT(inner_pt != NULL);
@@ -106,10 +106,17 @@ pt_insert(struct addrspace* as, vaddr_t vaddr, paddr_t paddr)
     return 0;
 }
 
-struct pt_entry*
+struct pt_entry_2*
 pt_get(struct addrspace* as, vaddr_t vaddr)
 {
-    (void) as;
-    (void) vaddr;
-    return NULL;
+    struct pt_entry_2 *inner_pt, *entry;
+
+    KASSERT(as != NULL);
+    KASSERT(as->page_table != NULL);
+
+    inner_pt = as->page_table[OUTER_PT_INDEX(vaddr)].inner_pt;
+    KASSERT(inner_pt != NULL);
+    entry = &inner_pt[INNER_PT_INDEX(vaddr)];
+    
+    return entry;
 }

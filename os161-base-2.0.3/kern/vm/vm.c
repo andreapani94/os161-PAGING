@@ -19,7 +19,7 @@ static struct spinlock stealmem_lock = SPINLOCK_INITIALIZER;
 static bool vm_initialized = false;
 
 paddr_t
-getppages(unsigned npages)
+getppages(unsigned npages, vaddr_t vaddr)
 {
 	paddr_t addr;
 
@@ -28,7 +28,7 @@ getppages(unsigned npages)
 		// assert that the user is not allocating more than one page
 		if (npages == 1) {
 			// user program
-			addr = coremap_alloc();
+			addr = coremap_alloc(vaddr);
 		} else {
 			// kernel
 			addr = coremap_kalloc(npages);
@@ -63,8 +63,8 @@ void
 vm_bootstrap()
 {
 	/* initialize the coremap */
+	swapfile_init();	/* before coremap_init as ram_stealmem needs to be called */
 	coremap_init();
-	//swapfile_init();
 	vm_initialized = true;
 }
 
@@ -132,7 +132,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
         /* create the page table */
         inner_pt_create(as->page_table, OUTER_PT_INDEX(faultaddress));
 		/* allocate a frame for the new page */
-        paddr = coremap_alloc();
+        paddr = coremap_alloc(faultaddress);
         /* update the page_table */
         inner_pt = as->page_table[OUTER_PT_INDEX(faultaddress)].inner_pt;
         KASSERT(inner_pt != NULL);
@@ -144,18 +144,19 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		/* bring the page in from the ELF file */
         res = pt_load(as, faultaddress, paddr);
         if (res) {
-            //panic("Cannot bring a page in memory, cannot translate!");
+            panic("vm_fault: pt_load has returned an error");
         }
 	} else {
 		if (inner_pt[INNER_PT_INDEX(faultaddress)].swapped) {
 			/* bring the page in from the SWAPFILE */
-            /* TODO */
-			paddr = 0;
+			paddr = inner_pt[INNER_PT_INDEX(faultaddress)].paddr;
+            swapfile_readpage(as, paddr);
+			inner_pt[INNER_PT_INDEX(faultaddress)].swapped = false;
 		} else if (!inner_pt[INNER_PT_INDEX(faultaddress)].valid) {
 			/* first time access to a page */
 			/* inner page table already created */
 			/* allocate a frame for the new page */
-			paddr = coremap_alloc();
+			paddr = coremap_alloc(faultaddress);
 			/* update the page_table */
 			inner_pt = as->page_table[OUTER_PT_INDEX(faultaddress)].inner_pt;
 			KASSERT(inner_pt != NULL);
@@ -167,7 +168,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 			/* bring the page in from the ELF file */
 			res = pt_load(as, faultaddress, paddr);
 			if (res) {
-				//panic("Cannot bring a page in memory, cannot translate!");
+				panic("vm_fault: pt_load has returned an error");
 			}
 		} 
 		else {
@@ -197,9 +198,15 @@ alloc_kpages(unsigned npages)
 {
     paddr_t paddr;
 
-	paddr = getppages(npages);
-	if (paddr == 0) {
-		return 0;
+	if (vm_initialized) {
+		paddr = coremap_kalloc(npages);
+	} else {
+		spinlock_acquire(&stealmem_lock);
+		paddr = ram_stealmem(npages);
+		spinlock_release(&stealmem_lock);
+		if (paddr == 0) {
+			return 0;
+		}
 	}
 	
 	return PADDR_TO_KVADDR(paddr);

@@ -119,9 +119,9 @@ coremaptest(int nargs, char** args)
     kprintf("Starting coremap test...\n");
     kprintf("User allocation:\n");
     kprintf("Trying to get two free frames...\n");
-    frame1 = coremap_alloc() / PAGE_SIZE;
+    frame1 = coremap_kalloc(1) / PAGE_SIZE;
     kprintf("Obtained frame %d\n", frame1);
-    frame2 = coremap_alloc() / PAGE_SIZE;
+    frame2 = coremap_kalloc(1) / PAGE_SIZE;
     KASSERT(frame1 == frame2-1);    // assuming single thread
     kprintf("Obtained frame %d\n", frame2);
     kprintf("Freeing both frames...\n");

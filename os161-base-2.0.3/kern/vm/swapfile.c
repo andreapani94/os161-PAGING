@@ -87,7 +87,7 @@ swapfile_writepage(struct addrspace* as, paddr_t pageaddr)
 }
 
 int
-swapfile_readpage(struct addrspace* as, vaddr_t pageaddr)
+swapfile_readpage(struct addrspace* as, paddr_t pageaddr)
 {
     struct iovec iov;
     struct uio ku;

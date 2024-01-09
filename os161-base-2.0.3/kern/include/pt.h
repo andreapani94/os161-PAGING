@@ -24,7 +24,7 @@ struct pt_entry_2 {
 
 paddr_t pt_translate(struct addrspace* as, vaddr_t);
 int pt_insert(struct addrspace*, vaddr_t, paddr_t);
-struct pt_entry* pt_get(struct addrspace* as, vaddr_t);
+struct pt_entry_2* pt_get(struct addrspace* as, vaddr_t);
 void inner_pt_create(struct pt_entry_1* outer_pt, uint32_t outer_pt_index);
 int pt_load(struct addrspace* as, vaddr_t vaddr, paddr_t paddr);
 

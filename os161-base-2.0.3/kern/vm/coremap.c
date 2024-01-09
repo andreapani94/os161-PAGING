@@ -6,10 +6,62 @@
 #include <vm.h>
 #include <spinlock.h>
 #include <coremap.h>
+#include <swapfile.h>
+#include <kern/errno.h>
+#include <current.h>
+#include <proc.h>
+#include <pt.h>
+
+struct queue_node {
+    struct coremap_entry* entry;
+    struct queue_node* next;
+};
 
 // bitmap initialization
 static struct coremap_entry* coremap = NULL;
 static uint32_t num_frames;
+static struct queue_node* replacement_queue = NULL;
+
+static
+int
+queue_push(struct coremap_entry* entry)
+{
+    struct queue_node* head = replacement_queue;
+
+    /* allocate a new queue node */
+    struct queue_node* node = kmalloc(sizeof(struct queue_node));
+    if (node == NULL) {
+        return ENOMEM;
+    }
+    node->entry = entry;
+    node->next = NULL;
+    /* insert the node into the queue */
+    if (head == NULL) {
+        replacement_queue = node;
+    } else {
+        /* go to the end of the queue */
+        while (head->next != NULL) {
+            head = head->next;
+        }
+        head->next = node;
+    }
+    return 0;
+}
+
+static
+struct coremap_entry*
+queue_pop()
+{
+    struct queue_node* node = NULL;
+
+    if (replacement_queue == NULL) {
+        return NULL;
+    }
+    node = replacement_queue;
+    replacement_queue = replacement_queue->next;
+
+    return node->entry;
+}
 
 void
 coremap_init()
@@ -52,24 +104,31 @@ coremap_init()
  * according to paging
 */
 paddr_t
-coremap_alloc()
+coremap_alloc(vaddr_t vaddr)
 {
     uint32_t i;
     paddr_t paddr = 0;
+    struct proc* p = curproc;
 
-    // synchronization? or in the calling function?
+    // synchronization
 
     /* search the coremap for a free frame */
     for (i = 0; i < num_frames; i++) {
         if (coremap[i].is_free) {
             paddr = i * PAGE_SIZE;
+            coremap[i].paddr = paddr;
             coremap[i].is_free = false;
+            coremap[i].as = p->p_addrspace;
+            coremap[i].vaddr = vaddr;
+            /* insert it into the replacement queue */
+            queue_push(&coremap[i]);
             return paddr;
         }
     }
 
     /* if not call the page replacement algorithm */
-    panic("No memory available anymore!");
+    paddr = coremap_replace();
+    //panic("No memory available anymore!");
 
     return paddr;
 }
@@ -125,11 +184,46 @@ coremap_kalloc(unsigned npages)
     if (found) {
         /* mark frames as allocated */
         for (i = 0; i < (last - first)+1; i++) {
+            coremap[first+i].paddr = (first+i) * PAGE_SIZE;
             coremap[first+i].is_free = false;
         }
     } else {
         panic("No memory available anymore!");
     }
+
+    return paddr;
+}
+
+paddr_t
+coremap_replace()
+{
+    struct coremap_entry* victim;
+    paddr_t paddr;
+    int res;
+    struct pt_entry_2* entry;
+
+    KASSERT(replacement_queue != NULL);
+    victim = queue_pop();
+    /* the victim could have been already freed */
+    while (victim->is_free) {
+        victim = queue_pop();
+    }
+    KASSERT(victim != NULL);
+    KASSERT(!victim->is_free);
+    paddr = victim->paddr;
+    /* write the page to SWAPFILE */
+    res = swapfile_writepage(victim->as, victim->paddr);
+    if (res) {
+        panic("coremap_replace: Page swapout failure\n");
+    }
+    /* zero out the page */
+    bzero((void*) PADDR_TO_KVADDR(paddr), PAGE_SIZE);
+    /* free up the frame */
+    victim->is_free = true;
+    /* update the address space of the process */
+    entry = pt_get(victim->as, victim->vaddr);
+    KASSERT(entry != NULL);
+    entry->swapped = true;
 
     return paddr;
 }

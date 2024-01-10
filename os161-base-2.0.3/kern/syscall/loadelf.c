@@ -98,6 +98,9 @@ load_page(struct addrspace* as, struct vnode* v, paddr_t paddr, uint32_t offset,
 	u.uio_space = as;  */
 
 	result = VOP_READ(v, &u);
+	if (result) {
+		return result;
+	}
 
 	(void) as;
 	(void) is_executable;

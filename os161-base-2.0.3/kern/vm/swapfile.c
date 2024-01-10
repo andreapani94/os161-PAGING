@@ -49,16 +49,13 @@ swapfile_init()
 }
 
 int 
-swapfile_writepage(struct addrspace* as, paddr_t pageaddr)
+swapfile_writepage(paddr_t pageaddr, uint32_t* swap_index)
 {
     struct iovec iov;
     struct uio ku;
     int result;
     uint32_t index;
 
-    KASSERT(as != NULL);
-
-    //spinlock_acquire(&swapfile_lock);
     /* find a free entry in the SWAPFILE */
     spinlock_acquire(&swapfile_lock);
     result = bitmap_alloc(swapfile_freeentries, &index);
@@ -77,45 +74,23 @@ swapfile_writepage(struct addrspace* as, paddr_t pageaddr)
     if (ku.uio_resid != 0) {
 
     }
-    /* update the swapfile map */
-    swapfile_map[index].as = as;
-    swapfile_map[index].paddr = pageaddr;
-
-    //spinlock_release(&swapfile_lock);
+    *swap_index = index;
 
     return 0;
 }
 
 int
-swapfile_readpage(struct addrspace* as, paddr_t pageaddr)
+swapfile_readpage(paddr_t frame, uint32_t swap_index)
 {
     struct iovec iov;
     struct uio ku;
     int result;
-    uint32_t i;
-    int index = -1;
 
 
-    KASSERT(as != NULL);
-
-    //spinlock_acquire(&swapfile_lock);
-
-    /* find the offset in which the page is located in the SWAPFILE */
-    for (i = 0; i < SWAPFILE_MAX_PAGES; i++) {
-        if (swapfile_map[i].as == as && swapfile_map[i].paddr == pageaddr) {
-            index = i;
-            swapfile_map[i].as = 0;
-            swapfile_map[i].paddr = 0;
-            break;
-        }
-    }
-    if (index < 0) {
-        panic("No swapped page was found!");
-    }
-    KASSERT(index >= 0);
+    KASSERT(swap_index < SWAPFILE_MAX_PAGES);
 
     /* read the content of the page from the swapfile */
-    uio_kinit(&iov, &ku, (void*) PADDR_TO_KVADDR(pageaddr), PAGE_SIZE, index*PAGE_SIZE, UIO_READ);
+    uio_kinit(&iov, &ku, (void*) PADDR_TO_KVADDR(frame), PAGE_SIZE, swap_index*PAGE_SIZE, UIO_READ);
     result = VOP_READ(swapfile, &ku);
     if (result) {
         return result;
@@ -126,10 +101,8 @@ swapfile_readpage(struct addrspace* as, paddr_t pageaddr)
 
     /* mark the entry in the SWAPFILE as free */
     spinlock_acquire(&swapfile_lock);
-    bitmap_unmark(swapfile_freeentries, index);
+    bitmap_unmark(swapfile_freeentries, swap_index);
     spinlock_release(&swapfile_lock);
-
-    //spinlock_release(&swapfile_lock);
 
     return 0;
 }

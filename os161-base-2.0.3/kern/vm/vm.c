@@ -148,10 +148,12 @@ vm_fault(int faulttype, vaddr_t faultaddress)
         }
 	} else {
 		if (inner_pt[INNER_PT_INDEX(faultaddress)].swapped) {
-			/* bring the page in from the SWAPFILE */
-			paddr = inner_pt[INNER_PT_INDEX(faultaddress)].paddr;
-            swapfile_readpage(as, paddr);
+			/* allocate a frame for the page to be brought in */
+			paddr = coremap_alloc(faultaddress);
+			uint32_t swap_index = inner_pt[INNER_PT_INDEX(faultaddress)].paddr;
+            swapfile_readpage(paddr, swap_index);
 			inner_pt[INNER_PT_INDEX(faultaddress)].swapped = false;
+			inner_pt[INNER_PT_INDEX(faultaddress)].paddr = paddr;
 		} else if (!inner_pt[INNER_PT_INDEX(faultaddress)].valid) {
 			/* first time access to a page */
 			/* inner page table already created */

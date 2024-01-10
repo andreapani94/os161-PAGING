@@ -53,14 +53,17 @@ struct coremap_entry*
 queue_pop()
 {
     struct queue_node* node = NULL;
+    struct coremap_entry* entry = NULL;
 
     if (replacement_queue == NULL) {
         return NULL;
     }
     node = replacement_queue;
     replacement_queue = replacement_queue->next;
+    entry = node->entry;
+    kfree(node);
 
-    return node->entry;
+    return entry;
 }
 
 void
@@ -212,16 +215,16 @@ coremap_replace()
     KASSERT(!victim->is_free);
     paddr = victim->paddr;
     /* write the page to SWAPFILE */
-    res = swapfile_writepage(victim->as, victim->paddr);
+    entry = pt_get(victim->as, victim->vaddr);
+    res = swapfile_writepage(victim->paddr, &entry->paddr);
     if (res) {
         panic("coremap_replace: Page swapout failure\n");
     }
     /* zero out the page */
     bzero((void*) PADDR_TO_KVADDR(paddr), PAGE_SIZE);
     /* free up the frame */
-    victim->is_free = true;
+    //victim->is_free = true;
     /* update the address space of the process */
-    entry = pt_get(victim->as, victim->vaddr);
     KASSERT(entry != NULL);
     entry->swapped = true;
 

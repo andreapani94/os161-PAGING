@@ -15,7 +15,7 @@ struct swapfile_entry {
 
 int swapfile_init(void);
 void swapfile_shutdown(void);
-int swapfile_writepage(struct addrspace*, paddr_t);
-int swapfile_readpage(struct addrspace*, paddr_t);
+int swapfile_writepage(paddr_t, uint32_t*);
+int swapfile_readpage(paddr_t, uint32_t);
 
 #endif

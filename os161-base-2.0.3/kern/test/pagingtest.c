@@ -60,8 +60,9 @@ swapfiletest(int nargs, char** args)
     (void)nargs;
 	(void)args;
     int result;
+    uint32_t swap_index;
     int i, sum1 = 0, sum2 = 0;
-    struct addrspace* as;
+    //struct addrspace* as;
 
     kprintf("Starting swapfile test...\n");
     kprintf("Trying to open the swapfile and initialize associated structures...\n");
@@ -72,7 +73,7 @@ swapfiletest(int nargs, char** args)
     }
     kprintf("Initialization successful!\n");
     /* simulate page envinronment */
-    as = as_create();
+    //as = as_create();
     uint8_t* page_content = kmalloc(PAGE_SIZE);
     for (i = 0; i < PAGE_SIZE; i++) {
         page_content[i] = i;
@@ -80,12 +81,12 @@ swapfiletest(int nargs, char** args)
     }
     kprintf("The sum of all numbers contained in the page is %d\n", sum1);
     kprintf("Trying to swap out a page...\n");
-    result = swapfile_writepage(as, (paddr_t) page_content - MIPS_KSEG0);
+    result = swapfile_writepage((paddr_t) page_content - MIPS_KSEG0, &swap_index);
     if (result) {
         kprintf("Swapfile test failed...\n");
         return 1;
     }
-    kprintf("Swap out successful!\n");
+    kprintf("Swap out successful (index = %d)!\n", swap_index);
     kprintf("Zeroing out the memory previously occupied by the page...\n");
     bzero(page_content, PAGE_SIZE);
     for (i = 0; i < PAGE_SIZE; i++) {
@@ -94,7 +95,7 @@ swapfiletest(int nargs, char** args)
     KASSERT(sum2 == 0);
     kprintf("The sum of all numbers contained in the page is %d\n", sum2);
     kprintf("Trying to swap in the same page...\n");
-    result = swapfile_readpage(as, (paddr_t) page_content - MIPS_KSEG0);
+    result = swapfile_readpage((paddr_t) page_content - MIPS_KSEG0, swap_index);
     if (result) {
         kprintf("Swapfile test failed...\n");
         return 1;

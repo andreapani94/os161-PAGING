@@ -9,7 +9,7 @@
 struct coremap_entry {
     struct addrspace* as;
     vaddr_t vaddr;
-    paddr_t paddr;
+    paddr_t paddr;     
     bool is_free;
 };
 

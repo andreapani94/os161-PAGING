@@ -89,7 +89,7 @@ coremap_init()
 
     /* Initialize frames status */
     for (i = 0; i < num_frames; i++) {
-        if (i < COREMAP_INDEX(firstfree)) {
+        if ((i < COREMAP_INDEX(firstfree))) {
             /* frames occupied by the kernel */
             coremap[i].is_free = false;
         } else {
@@ -112,26 +112,29 @@ coremap_alloc(vaddr_t vaddr)
     uint32_t i;
     paddr_t paddr = 0;
     struct proc* p = curproc;
+    bool found = false;
 
     // synchronization
-
-    /* search the coremap for a free frame */
-    for (i = 0; i < num_frames; i++) {
-        if (coremap[i].is_free) {
-            paddr = i * PAGE_SIZE;
-            coremap[i].paddr = paddr;
-            coremap[i].is_free = false;
-            coremap[i].as = p->p_addrspace;
-            coremap[i].vaddr = vaddr;
-            /* insert it into the replacement queue */
-            queue_push(&coremap[i]);
-            return paddr;
+    do {
+        /* search the coremap for a free frame */
+        for (i = 0; i < num_frames; i++) {
+            if (coremap[i].is_free) {
+                paddr = i * PAGE_SIZE;
+                coremap[i].paddr = paddr;
+                coremap[i].is_free = false;
+                coremap[i].as = p->p_addrspace;
+                coremap[i].vaddr = vaddr;
+                /* insert it into the replacement queue */
+                queue_push(&coremap[i]);
+                found = true;
+                break;
+            }
         }
-    }
-
-    /* if not call the page replacement algorithm */
-    paddr = coremap_replace();
-    //panic("No memory available anymore!");
+        /* if not call the page replacement algorithm */
+        if (!found) {
+            coremap_replace();
+        }
+    } while (!found);
 
     return paddr;
 }
@@ -169,30 +172,32 @@ coremap_kalloc(unsigned npages)
     paddr_t paddr = 0;  // the starting physical address
     bool found = false;
 
-    /* search for a sequence of free frames */
-    for (i = 0; i < num_frames; i++) {
-        if (coremap[i].is_free) {
-            if ((i == 0) | !coremap[i-1].is_free) {
-                first = i;
-            }
-            if ((i - first)+1 >= npages) {
-                last = i;
-                paddr = first * PAGE_SIZE;
-                found = true;
-                break;
-            }
-        }  
-    }
-
-    if (found) {
-        /* mark frames as allocated */
-        for (i = 0; i < (last - first)+1; i++) {
-            coremap[first+i].paddr = (first+i) * PAGE_SIZE;
-            coremap[first+i].is_free = false;
+    do {
+        /* search for a sequence of free frames */
+        for (i = 0; i < num_frames; i++) {
+            if (coremap[i].is_free) {
+                if ((i == 0) | !coremap[i-1].is_free) {
+                    first = i;
+                }
+                if ((i - first)+1 >= npages) {
+                    last = i;
+                    paddr = first * PAGE_SIZE;
+                    found = true;
+                    break;
+                }
+            }  
         }
-    } else {
-        panic("No memory available anymore!");
-    }
+
+        if (found) {
+            /* mark frames as allocated */
+            for (i = 0; i < (last - first)+1; i++) {
+                coremap[first+i].paddr = (first+i) * PAGE_SIZE;
+                coremap[first+i].is_free = false;
+            }
+        } else {
+            coremap_replace();
+        }
+    } while (!found);
 
     return paddr;
 }
@@ -221,9 +226,9 @@ coremap_replace()
         panic("coremap_replace: Page swapout failure\n");
     }
     /* zero out the page */
-    bzero((void*) PADDR_TO_KVADDR(paddr), PAGE_SIZE);
+    //bzero((void*) PADDR_TO_KVADDR(paddr), PAGE_SIZE);
     /* free up the frame */
-    //victim->is_free = true;
+    victim->is_free = true;
     /* update the address space of the process */
     KASSERT(entry != NULL);
     entry->swapped = true;

@@ -173,15 +173,18 @@ as_define_region(struct addrspace *as, int seg_index, vaddr_t vaddr, size_t sz,
 	#if OPT_PAGING
 	size_t npages;
 	struct segment* s;
+	uint32_t page_displ;
 
 	KASSERT(as != NULL);
 
 	/* Align the region. First, the base... */
-	sz += vaddr & ~(vaddr_t)PAGE_FRAME;
-	vaddr &= PAGE_FRAME;
+	page_displ = vaddr & ~(vaddr_t)PAGE_FRAME;	/* base displacement from page 
+												boundary to the segment size */
+	sz += page_displ;									
+	vaddr &= PAGE_FRAME;					/* obtaines the page address p */
 
-	/* ...and now the length. */
-	sz = (sz + PAGE_SIZE - 1) & PAGE_FRAME;
+	/* ...and now the top. */
+	sz = (sz + PAGE_SIZE - 1) & PAGE_FRAME;		/* extends the top to a page boundary  */
 
 	npages = sz / PAGE_SIZE;
 	

@@ -121,7 +121,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	/* check if the faulting address is valid */
 	res = segments_valid_address(as->segments, faultaddress);
 	if (res) {
-		return EFAULT;
+		//return EFAULT;
 	} 
 
 	/* PAGE FAULT HANDLING */

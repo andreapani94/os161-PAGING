@@ -9,4 +9,5 @@ addrspace.o: ../../vm/addrspace.c ../../include/types.h \
  ../../include/proc.h ../../include/synch.h opt-synch.h \
  ../../include/limits.h ../../include/kern/limits.h opt-waitpid.h \
  opt-filesys.h ../../include/coremap.h ../../include/spl.h \
- ../../include/pt.h ../../include/vmtlb.h
+ ../../include/pt.h ../../include/vmtlb.h ../../include/vmstats.h \
+ ../../include/vfs.h ../../include/array.h

@@ -246,7 +246,7 @@ lock_do_i_hold(struct lock *lock)
         spinlock_release(&lock->lk_lock);
         #endif
 
-        //(void)lock;  // suppress warning until code gets written
+        (void)lock;  // suppress warning until code gets written
 
         return do_i_hold; // dummy until code gets written
 }
@@ -339,12 +339,14 @@ void
 cv_broadcast(struct cv *cv, struct lock *lock)
 {
 	// Write this
+        #if OPT_SYNCH
         KASSERT(cv != NULL);
         KASSERT(lock != NULL);
         KASSERT(lock_do_i_hold(lock));
         spinlock_acquire(&cv->cv_lock);
         wchan_wakeall(cv->cv_wchan, &cv->cv_lock);
         spinlock_release(&cv->cv_lock);
+        #endif
 	(void)cv;    // suppress warning until code gets written
 	(void)lock;  // suppress warning until code gets written
 }

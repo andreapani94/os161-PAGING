@@ -142,8 +142,6 @@ as_activate(void)
 	vmtlb_reset();
 
 	splx(spl);
-
-	vms.vms_tlbinvalidations++;
 }
 
 void

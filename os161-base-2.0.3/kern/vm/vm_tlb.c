@@ -40,7 +40,9 @@ vmtlb_insert(vaddr_t vaddr, paddr_t paddr, bool iswritable)
             elo = elo | TLBLO_DIRTY;
         }
         tlb_write(ehi, elo, i);
+        /* TLB Faults with Free */
         vms.vms_tlbfaultsfree++;
+
         return 0;
     }
 
@@ -59,6 +61,7 @@ vmtlb_insert(vaddr_t vaddr, paddr_t paddr, bool iswritable)
         elo = elo | TLBLO_DIRTY;
     }
     tlb_write(ehi, elo, (uint32_t) victim);
+    /* TLB Faults with Replace */
     vms.vms_tlbfaultsreplace++;
 
     return 0;
@@ -73,5 +76,8 @@ vmtlb_reset()
     for (i = 0; i < NUM_TLB; i++) {
         tlb_write(TLBHI_INVALID(i), TLBLO_INVALID(), i);
     }
+
+    /* TLB Invalidations */
+    vms.vms_tlbinvalidations++;
 }
 

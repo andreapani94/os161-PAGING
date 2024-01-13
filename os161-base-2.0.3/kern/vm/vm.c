@@ -82,9 +82,6 @@ vm_fault(int faulttype, vaddr_t faultaddress)
     int res, spl;
 	struct pt_entry_2* inner_pt;
 
-	/* a page fault occurred */
-	vms.vms_tlbfaults++;
-
     /* extract the page number using a bit mask */
     faultaddress &= PAGE_FRAME;
 
@@ -123,6 +120,9 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	if (res) {
 		//return EFAULT;
 	} 
+
+	/* TLB Faults */
+	vms.vms_tlbfaults++;
 
 	/* PAGE FAULT HANDLING */
 	inner_pt = as->page_table[OUTER_PT_INDEX(faultaddress)].inner_pt;
@@ -174,7 +174,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 			}
 		} 
 		else {
-			/* TLB reload */
+			/* TLB Reloads */
 			vms.vms_tlbreloads++;
 			paddr = inner_pt[INNER_PT_INDEX(faultaddress)].paddr;
 		}		

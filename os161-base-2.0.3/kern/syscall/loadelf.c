@@ -79,7 +79,7 @@
 
 #if OPT_PAGING
 int
-load_page(struct addrspace* as, struct vnode* v, paddr_t paddr, uint32_t offset, bool is_executable)
+load_page(struct vnode* v, paddr_t paddr, uint32_t offset, bool is_executable)
 {
 	struct iovec iov;
 	struct uio u;
@@ -101,8 +101,6 @@ load_page(struct addrspace* as, struct vnode* v, paddr_t paddr, uint32_t offset,
 	if (result) {
 		return result;
 	}
-
-	(void) as;
 	(void) is_executable;
 	return result;
 }

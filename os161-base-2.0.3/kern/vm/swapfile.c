@@ -74,6 +74,9 @@ swapfile_writepage(paddr_t pageaddr, uint32_t* swap_index)
     if (ku.uio_resid != 0) {
 
     }
+
+    /* Swapfile Writes */
+    vms.vms_swapfilewrites++;
     *swap_index = index;
 
     return 0;
@@ -103,6 +106,9 @@ swapfile_readpage(paddr_t frame, uint32_t swap_index)
     spinlock_acquire(&swapfile_lock);
     bitmap_unmark(swapfile_freeentries, swap_index);
     spinlock_release(&swapfile_lock);
+
+    /* Page Faults from Swapfile */
+    vms.vms_pagefaultsswapfile++;
 
     return 0;
 }

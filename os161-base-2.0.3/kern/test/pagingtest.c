@@ -26,6 +26,7 @@ tlbtest(int nargs, char** args)
 	(void)args;
     uint8_t i;
     uint32_t ehi, elo;
+    uint32_t ehi2, elo2;
     vaddr_t vaddr = 0x40000;
     paddr_t paddr = 0x0;
 
@@ -37,8 +38,10 @@ tlbtest(int nargs, char** args)
         ehi = vaddr;
         paddr = (paddr + (i * PAGE_SIZE)) | TLBLO_DIRTY | TLBLO_VALID;
         elo = paddr;
-        DEBUG(DB_VM, "tlb: 0x%x -> 0x%x\n", ehi, elo);
         tlb_write(ehi, elo, i);
+        tlb_read(&ehi2, &elo2, i);
+        KASSERT(ehi2 == ehi);
+        KASSERT(elo2 == elo);
     }
     kprintf("Trying to insert one more entry...\n");
     i++;

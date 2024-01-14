@@ -33,12 +33,13 @@ vmtlb_insert(vaddr_t vaddr, paddr_t paddr, bool iswritable)
             continue;
         }
         /* free entry is found */
-        DEBUG(DB_VM, "dumbvm: 0x%x -> 0x%x\n", vaddr, paddr);
         ehi = vaddr;
-        elo = paddr | TLBLO_VALID;
         if (iswritable) {
-            elo = elo | TLBLO_DIRTY;
+            elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
+        } else {
+            elo = paddr | TLBLO_VALID;
         }
+        //kprintf("tlb %u: 0x%x -> 0x%x\n", i, ehi, elo);
         tlb_write(ehi, elo, i);
         /* TLB Faults with Free */
         vms.vms_tlbfaultsfree++;
@@ -60,6 +61,7 @@ vmtlb_insert(vaddr_t vaddr, paddr_t paddr, bool iswritable)
     if (iswritable) {
         elo = elo | TLBLO_DIRTY;
     }
+    //kprintf("tlb %u: 0x%x -> 0x%x\n", (uint32_t) victim, ehi, elo);
     tlb_write(ehi, elo, (uint32_t) victim);
     /* TLB Faults with Replace */
     vms.vms_tlbfaultsreplace++;

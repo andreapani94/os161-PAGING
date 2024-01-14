@@ -5,6 +5,7 @@
 #include <pt.h>
 #include <addrspace.h>
 #include <coremap.h>
+#include <vmstats.h>
 #include "opt-paging.h"
  
 void
@@ -21,29 +22,26 @@ inner_pt_create(struct pt_entry_1* outer_pt, uint32_t outer_pt_index)
 
 
 int
-pt_load(struct addrspace* as, vaddr_t vaddr, paddr_t paddr)
+pt_load(struct segment* s, vaddr_t vaddr, paddr_t paddr)
 {
-    struct segment* s;
     uint32_t file_offset;
     uint32_t page_index;
     int res;
-    KASSERT(as != NULL);
-    KASSERT(as->segments != NULL);
+    KASSERT(s != NULL);
+    KASSERT(s->elf_file != NULL);
 
-    s = segments_find_segment(as->segments, vaddr);
-    if (s == NULL) {
-        return 1;
+    /* set up the offset into the file */
+    page_index = vaddr - s->vbase;
+    file_offset = s->elf_segment_start + page_index;
+    res = load_page(s->elf_file, paddr, file_offset, s->executable);
+    if (res) {
+        return res;
     }
-    /* stack needs no loading */
-    if (s->elf_file != NULL) {
-        /* set up the offset into the file */
-        page_index = vaddr - s->vbase;
-        file_offset = s->elf_segment_start + page_index;
-        res = load_page(as, s->elf_file, paddr, file_offset, s->executable);
-        if (res) {
-            return res;
-        }
-    }
+    /* Page Faults from ELF */
+    vms.vms_pagefaultself++;
+    /* Page Faults (Disk) */
+    vms.vms_pagefaultsdisk++;
+    
     (void) paddr;
     return 0;
 }
@@ -55,7 +53,6 @@ pt_translate(struct addrspace* as, vaddr_t vaddr)
     struct pt_entry_2* inner_pt;
     struct pt_entry_2 pt_entry;
     paddr_t paddr = 0;
-    int res;
 
     KASSERT(as != NULL);
     KASSERT(as->page_table != NULL);
@@ -78,11 +75,7 @@ pt_translate(struct addrspace* as, vaddr_t vaddr)
         KASSERT(paddr == inner_pt[INNER_PT_INDEX(vaddr)].paddr);
         /* bring the page in from the ELF file */
         /* as now vm_fault will use the pt for translation */
-        res = pt_load(as, vaddr, 0);
-        /* return paddr when spostata in vm_fault*/
-        if (res) {
-            panic("Cannot bring a page in memory, cannot translate!");
-        }
+        
 
     } else {
        pt_entry = inner_pt[INNER_PT_INDEX(vaddr)];

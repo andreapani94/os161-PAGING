@@ -16,7 +16,7 @@ struct segment {
     /* ELF file */
     struct vnode* elf_file;
     uint32_t elf_segment_start;
-    
+    uint32_t elf_page_displ;
 };
 
 int segments_valid_address(struct segment*, vaddr_t);

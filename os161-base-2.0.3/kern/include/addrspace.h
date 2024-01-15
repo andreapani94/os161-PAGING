@@ -145,7 +145,7 @@ int               as_define_stack(struct addrspace *as, vaddr_t *initstackptr);
 
 int load_elf(struct vnode *v, vaddr_t *entrypoint);
 #if OPT_PAGING
-int load_page(struct vnode* v, paddr_t paddr, uint32_t offset, bool is_executable);
+int load_page(struct vnode* v, paddr_t paddr,uint32_t page_size, uint32_t offset, bool is_executable);
 #endif
 
 

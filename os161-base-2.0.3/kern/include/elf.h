@@ -171,7 +171,7 @@ typedef struct {
 	uint32_t	p_vaddr;     /* Virtual address */
 	uint32_t	p_paddr;     /* Ignore */
 	uint32_t	p_filesz;    /* Size of data within file */
-	uint32_t	p_memsz;     /* Size of data to be loaded into memory*/
+	uint32_t	p_memsz;     /* Size of data to be loaded into memory */
 	uint32_t	p_flags;     /* Flags */
 	uint32_t	p_align;     /* Required alignment - can ignore */
 } Elf32_Phdr;

@@ -79,13 +79,13 @@
 
 #if OPT_PAGING
 int
-load_page(struct vnode* v, paddr_t paddr, uint32_t offset, bool is_executable)
+load_page(struct vnode* v, paddr_t paddr, uint32_t page_size, uint32_t offset, bool is_executable)
 {
 	struct iovec iov;
 	struct uio u;
 	int result;
 
-	uio_kinit(&iov, &u, (void*) PADDR_TO_KVADDR(paddr), PAGE_SIZE, offset, UIO_READ);
+	uio_kinit(&iov, &u, (void*) PADDR_TO_KVADDR(paddr), page_size, offset, UIO_READ);
 	/*
 	iov.iov_ubase = (userptr_t) vaddr;
 	iov.iov_len = PAGE_SIZE;

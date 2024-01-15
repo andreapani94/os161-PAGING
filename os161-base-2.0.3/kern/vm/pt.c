@@ -24,16 +24,19 @@ inner_pt_create(struct pt_entry_1* outer_pt, uint32_t outer_pt_index)
 int
 pt_load(struct segment* s, vaddr_t vaddr, paddr_t paddr)
 {
-    uint32_t file_offset;
-    uint32_t page_index;
+    uint32_t elf_offset;
+    uint32_t page_size = PAGE_SIZE;
     int res;
     KASSERT(s != NULL);
     KASSERT(s->elf_file != NULL);
 
     /* set up the offset into the file */
-    page_index = vaddr - s->vbase;
-    file_offset = s->elf_segment_start + page_index;
-    res = load_page(s->elf_file, paddr, file_offset, s->executable);
+    int page_index = vaddr - s->vbase;
+    elf_offset = s->elf_segment_start + page_index;
+    /* modify the paddr to take into account base page displacement */
+    //paddr += s->elf_base_offset;
+    segments_before_load(s, vaddr, &paddr, &elf_offset, &page_size);
+    res = load_page(s->elf_file, paddr, page_size, elf_offset, s->executable);
     if (res) {
         return res;
     }

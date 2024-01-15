@@ -192,12 +192,13 @@ as_define_region(struct addrspace *as, int seg_index, vaddr_t vaddr, size_t sz,
 	/* set attributes up */
 	s->vbase = vaddr;
 	s->vtop = vaddr + (npages * PAGE_SIZE);
+	s->npages = npages;
 	s->readable = readable;
 	s->writable = writeable;
 	s->executable = executable;
 	s->elf_file = v;
 	s->elf_segment_start = offset;
-	s->elf_page_displ = page_displ;
+	s->elf_base_offset = page_displ;
 
 	return 0;
 	#else
@@ -257,7 +258,7 @@ as_define_stack(struct addrspace *as, vaddr_t *stackptr)
 	s->writable = true;
 	s->executable = false;
 	s->elf_file = NULL;
-	s->elf_page_displ = 0;
+	s->elf_base_offset = 0;
 	return 0;
 }
 

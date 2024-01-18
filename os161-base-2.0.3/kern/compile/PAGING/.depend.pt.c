@@ -5,4 +5,4 @@ pt.o: ../../vm/pt.c ../../include/types.h ../../include/kern/types.h \
  ../../include/kern/errno.h ../../include/pt.h ../../include/addrspace.h \
  ../../include/segments.h ../../include/vnode.h ../../include/spinlock.h \
  ../../include/hangman.h opt-hangman.h includelinks/machine/spinlock.h \
- ../../include/pt.h opt-dumbvm.h ../../include/coremap.h
+ opt-dumbvm.h ../../include/coremap.h ../../include/vmstats.h

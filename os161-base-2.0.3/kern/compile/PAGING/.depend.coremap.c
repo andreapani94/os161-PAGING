@@ -13,4 +13,4 @@ coremap.o: ../../vm/coremap.c ../../include/types.h \
  ../../include/synch.h opt-synch.h ../../include/limits.h \
  ../../include/kern/limits.h opt-waitpid.h opt-filesys.h \
  ../../include/pt.h ../../include/addrspace.h ../../include/segments.h \
- ../../include/vnode.h ../../include/pt.h opt-dumbvm.h
+ ../../include/vnode.h opt-dumbvm.h

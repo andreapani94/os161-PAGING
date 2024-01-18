@@ -12,6 +12,7 @@
 #include <coremap.h>
 #include <vmstats.h>
 #include <swapfile.h>
+#include <syscall.h>
 
 #include "opt-paging.h"
 
@@ -81,7 +82,8 @@ vm_fault(int faulttype, vaddr_t faultaddress)
     struct addrspace* as;
     paddr_t paddr;
     int res, spl;
-	struct pt_entry_2* inner_pt;
+	//struct pt_entry_2 *inner_pt, *entry;
+	struct pt_entry* entry;
 	struct segment* s;
 	bool iswritable;
 
@@ -90,7 +92,8 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 
     switch (faulttype) {
 	    case VM_FAULT_READONLY:
-		/* Handle the read-only case by terminating the process */
+			/* Handle the read-only case by terminating the process */
+			sys__exit(1);
 			break;
 	    case VM_FAULT_READ:
 	    case VM_FAULT_WRITE:
@@ -118,84 +121,60 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	}
 
 
-	/* check if the faulting address is valid (within segments boundaries) */
+	/* check if the faulting address is within segments boundaries */
 	s = segments_find_segment(as->segments, faultaddress);
 	if (s == NULL) {
 		return EFAULT;
 	}
 	iswritable = s->writable;
-	//faultaddress -= s->elf_page_displ;
 
 	/* TLB Faults */
 	vms.vms_tlbfaults++;
 
 	/* PAGE FAULT HANDLING */
-	inner_pt = as->page_table[OUTER_PT_INDEX(faultaddress)].inner_pt;
-	if (inner_pt == NULL) {
-        /* first time access to a page */
-        /* no inner page table has been created */
-        /* create the page table */
-        inner_pt_create(as->page_table, OUTER_PT_INDEX(faultaddress));
+	
+	if (as->page_table[OUTER_PT_INDEX(faultaddress)] == NULL) {
+		/* first time access to a page, no inner page table has been created yet */
+		res = inner_pt_create(as, faultaddress);
+		if (res) {
+			return res;
+		}
+	}
+	entry = &as->page_table[OUTER_PT_INDEX(faultaddress)][INNER_PT_INDEX(faultaddress)];
+	KASSERT(entry != NULL);
+	if (!entry->valid) {
 		/* allocate a frame for the new page */
         paddr = coremap_alloc(faultaddress);
         /* update the page_table */
-        inner_pt = as->page_table[OUTER_PT_INDEX(faultaddress)].inner_pt;
-        KASSERT(inner_pt != NULL);
-        inner_pt[INNER_PT_INDEX(faultaddress)].paddr = paddr;
-		inner_pt[INNER_PT_INDEX(faultaddress)].valid = true;
-        inner_pt[INNER_PT_INDEX(faultaddress)].dirty = false;
-        inner_pt[INNER_PT_INDEX(faultaddress)].swapped = false;
-        KASSERT(paddr == inner_pt[INNER_PT_INDEX(faultaddress)].paddr);
+        entry->paddr = paddr;
+		entry->valid = true;
+        entry->swapped = false;
+        KASSERT(paddr == entry->paddr);
 		if (s->elf_file != NULL) {
 			/* bring the page in from the ELF file */
-			res = pt_load(s, faultaddress, paddr);
+			res = pt_load(s, faultaddress, entry->paddr);
 			if (res) {
-				panic("vm_fault: pt_load has returned an error");
+				kprintf("vm_fault: pt_load has returned an error");
 			}
 		} else {
-			/* stack segment (or heap, when it's actually implemented)*/
+			/* stack segment (or heap, when it's actually implemented) */
 			bzero((void*) PADDR_TO_KVADDR(paddr), PAGE_SIZE);
 			/* Page Faults (Zeroed)*/
 			vms.vms_pagefaultszeroed++;
 		}
 	} else {
-		if (inner_pt[INNER_PT_INDEX(faultaddress)].swapped) {
+		if (entry->swapped) {
 			/* allocate a frame for the page to be brought in */
 			paddr = coremap_alloc(faultaddress);
-			uint32_t swap_index = inner_pt[INNER_PT_INDEX(faultaddress)].paddr;
+			uint32_t swap_index = entry->paddr;
             swapfile_readpage(paddr, swap_index);
-			inner_pt[INNER_PT_INDEX(faultaddress)].swapped = false;
-			inner_pt[INNER_PT_INDEX(faultaddress)].paddr = paddr;
-		} else if (!inner_pt[INNER_PT_INDEX(faultaddress)].valid) {
-			/* first time access to a page */
-			/* inner page table already created */
-			/* allocate a frame for the new page */
-			paddr = coremap_alloc(faultaddress);
-			/* update the page_table */
-			inner_pt = as->page_table[OUTER_PT_INDEX(faultaddress)].inner_pt;
-			KASSERT(inner_pt != NULL);
-			inner_pt[INNER_PT_INDEX(faultaddress)].paddr = paddr;
-			inner_pt[INNER_PT_INDEX(faultaddress)].valid = true;
-			inner_pt[INNER_PT_INDEX(faultaddress)].dirty = false;
-			inner_pt[INNER_PT_INDEX(faultaddress)].swapped = false;
-			KASSERT(paddr == inner_pt[INNER_PT_INDEX(faultaddress)].paddr);
-			if (s->elf_file != NULL) {
-				/* bring the page in from the ELF file */
-				res = pt_load(s, faultaddress, paddr);
-				if (res) {
-					panic("vm_fault: pt_load has returned an error");
-				}
-			} else {
-				/* stack segment (or heap, when it's actually implemented)*/
-				bzero((void*) PADDR_TO_KVADDR(paddr), PAGE_SIZE);
-				/* Page Faults (Zeroed)*/
-				vms.vms_pagefaultszeroed++;
-			}
+			entry->swapped = false;
+			entry->paddr = paddr;
 		} 
 		else {
 			/* TLB Reloads */
 			vms.vms_tlbreloads++;
-			paddr = inner_pt[INNER_PT_INDEX(faultaddress)].paddr;
+			paddr = entry->paddr;
 		}		
 	}
 	
@@ -204,6 +183,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	KASSERT((paddr & PAGE_FRAME) == paddr);
 
 	spinlock_acquire(&tlb_lock);
+
 	spl = splhigh();
 
 	res = vmtlb_insert(faultaddress, paddr, iswritable);

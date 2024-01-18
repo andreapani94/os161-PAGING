@@ -86,16 +86,6 @@ load_page(struct vnode* v, paddr_t paddr, uint32_t page_size, uint32_t offset, b
 	int result;
 
 	uio_kinit(&iov, &u, (void*) PADDR_TO_KVADDR(paddr), page_size, offset, UIO_READ);
-	/*
-	iov.iov_ubase = (userptr_t) vaddr;
-	iov.iov_len = PAGE_SIZE;
-	u.uio_iov = &iov;
-	u.uio_iovcnt = 1;
-	u.uio_resid = PAGE_SIZE;
-	u.uio_offset = offset;
-	u.uio_segflg = is_executable ? UIO_USERISPACE : UIO_USERSPACE;
-	u.uio_rw = UIO_READ;
-	u.uio_space = as;  */
 
 	result = VOP_READ(v, &u);
 	if (result) {

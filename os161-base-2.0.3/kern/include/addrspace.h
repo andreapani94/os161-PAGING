@@ -35,13 +35,14 @@
  */
 
 
+#include <pt.h>
 #include <vm.h>
 #include <segments.h>
-#include "pt.h"
 #include "opt-dumbvm.h"
 #include "opt-paging.h"
 
 struct vnode;
+struct pt_entry;
 
 
 /*
@@ -63,8 +64,9 @@ struct addrspace {
 #endif
         /* Put stuff here for your VM system */
 #if OPT_PAGING
-        struct pt_entry_1* page_table;
+        //struct pt_entry_1* page_table;
         struct segment* segments;
+        struct pt_entry* page_table[OUTER_PT_SIZE];
 #endif
 
 };

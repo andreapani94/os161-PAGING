@@ -3,4 +3,5 @@ segments.o: ../../vm/segments.c ../../include/segments.h \
  includelinks/kern/machine/types.h includelinks/machine/types.h \
  ../../include/vnode.h ../../include/spinlock.h ../../include/cdefs.h \
  ../../include/hangman.h opt-hangman.h includelinks/machine/spinlock.h \
+ ../../include/vm.h includelinks/machine/vm.h opt-paging.h \
  ../../include/kern/errno.h

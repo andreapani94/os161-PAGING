@@ -208,7 +208,7 @@ coremap_replace()
     struct coremap_entry* victim;
     paddr_t paddr;
     int res;
-    struct pt_entry_2* entry;
+    struct pt_entry* entry;
 
     KASSERT(replacement_queue != NULL);
     victim = queue_pop();

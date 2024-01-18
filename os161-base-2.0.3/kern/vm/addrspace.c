@@ -65,14 +65,8 @@ as_create(void)
 	 * Initialize as needed.
 	 */
 	#if OPT_PAGING
-	/* initialize the outer page table */
-	as->page_table = kmalloc(sizeof(struct pt_entry_1) * OUTER_PT_SIZE);
-	if (as->page_table == NULL) {
-		kfree(as);
-		return NULL;
-	}
-	bzero(as->page_table, sizeof(struct pt_entry_1) * OUTER_PT_SIZE);
-
+	/* initialize inner page table pointers */
+	bzero(as->page_table, sizeof(struct pt_entry*) * OUTER_PT_SIZE);
 	/* initialize segments */
 	as->segments = kmalloc(sizeof(struct segment) * NUM_SEGMENTS);
 	if (as->segments == NULL) {
@@ -111,7 +105,7 @@ as_destroy(struct addrspace *as)
 	 * Clean up as needed.
 	 */
 	#if OPT_PAGING
-	kfree(as->page_table);
+	// kfree every page table open using a for loop
 	/* close the ELF file */
 	vfs_close(as->segments[0].elf_file);
 	kfree(as->segments);

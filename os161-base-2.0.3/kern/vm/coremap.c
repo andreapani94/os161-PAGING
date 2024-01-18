@@ -11,16 +11,17 @@
 #include <current.h>
 #include <proc.h>
 #include <pt.h>
+#include <synch.h>
 
 struct queue_node {
     struct coremap_entry* entry;
     struct queue_node* next;
 };
 
-// bitmap initialization
 static struct coremap_entry* coremap = NULL;
 static uint32_t num_frames;
 static struct queue_node* replacement_queue = NULL;
+static struct lock* coremap_lock = NULL;
 
 static
 int
@@ -97,6 +98,10 @@ coremap_init()
             coremap[i].is_free = true;
         }
     }
+    /* initialize coremap lock */
+    coremap_lock = lock_create("coremap lock");
+    KASSERT(coremap_lock != NULL);
+
     return;
 }
 
@@ -104,7 +109,7 @@ coremap_init()
 /* 
  * This function is used to find and allocate a frame for
  * user programs. Only 1 frame at a time can be allocated 
- * according to paging
+ * 
 */
 paddr_t
 coremap_alloc(vaddr_t vaddr)
@@ -114,7 +119,7 @@ coremap_alloc(vaddr_t vaddr)
     struct proc* p = curproc;
     bool found = false;
 
-    // synchronization
+    lock_acquire(coremap_lock);
     do {
         /* search the coremap for a free frame */
         for (i = 0; i < num_frames; i++) {
@@ -135,6 +140,7 @@ coremap_alloc(vaddr_t vaddr)
             coremap_replace();
         }
     } while (!found);
+    lock_release(coremap_lock);
 
     return paddr;
 }

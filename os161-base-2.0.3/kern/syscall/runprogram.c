@@ -45,19 +45,47 @@
 #include <syscall.h>
 #include <test.h>
 #include <copyinout.h>
+#include "opt-args.h"
 
-/* copy argc into the process stack 
-
+#if OPT_ARGS
+/* copy argc into the process stack */
 static
-int
-load_args(userptr_t baseptr, unsigned int argc, char **args)
+userptr_t
+load_args(userptr_t stackptr, unsigned int argc, char **args)
 {
-	copyout((userptr_t) &argc, baseptr, sizeof(unsigned int));
-	baseptr += sizeof(unsigned int);
-	copyout(args, baseptr, sizeof(char *));
-	baseptr += sizeof(char *);
-	return -1;
-} */
+	int i, res;
+	size_t offset = 0;
+	vaddr_t stack_base = (vaddr_t) stackptr;
+	vaddr_t stack_top = stack_base;
+	char** arg_addrs = NULL;
+
+	arg_addrs = kmalloc(sizeof(char*) * argc);
+	/* load string args into the stack */
+	for (i = 0; i < (int) argc; i++) {
+		offset = strlen(args[i])+1;
+		res = copyout(args[i], (userptr_t) (stack_top-offset), offset);
+		if (res) {
+			return NULL;
+		}
+		stack_top -= offset;
+		arg_addrs[i] = (char*) stack_top;
+	}
+	stack_top = (((stack_top - stack_base) / 4) + 1) * 4;
+	KASSERT(stack_top % 4 == 0);
+	/* load pointers to string args into the stack */
+	for (i = 0; i < (int) argc; i++) {
+		res = copyout(&arg_addrs[i], (userptr_t) (stack_top-4), 4);
+		if (res) {
+			return NULL;
+		}
+		stack_top -= 4;
+	}
+	stack_top = (((stack_top - stack_base) / 8) + 1) * 8;
+	KASSERT(stack_top % 8 == 0);
+
+	return (userptr_t) stack_top;
+}
+#endif
 
 
 /*
@@ -72,9 +100,11 @@ runprogram(char *progname, unsigned int argc, char **args)
 	struct addrspace *as;
 	struct vnode *v;
 	vaddr_t entrypoint, stackptr;
+	userptr_t user_args;
 	int result;
 	(void) argc; // to suppress warnings
 	(void) args;
+	(void) user_args;
 
 	/* Open the file. */
 	result = vfs_open(progname, O_RDONLY, 0, &v);
@@ -116,18 +146,20 @@ runprogram(char *progname, unsigned int argc, char **args)
 		return result;
 	}
 
+	#if OPT_ARGS
 	/* Program arguments */
-
-	/* result = load_args((userptr_t) stackptr, nargs, args);
-	if (result) {
-		return result;
-	} */
+	user_args = load_args((userptr_t) stackptr, argc, args);
+	stackptr = (vaddr_t) user_args;
+	#endif
 
 	/* Warp to user mode. */
+	# if !OPT_ARGS
 	enter_new_process(0 /*argc*/, NULL /*userspace addr of argv*/,
 			  NULL /*userspace addr of environment*/,
 			  stackptr, entrypoint);
-
+	# else 
+	enter_new_process(argc, user_args, NULL, stackptr, entrypoint);
+	#endif
 	/* enter_new_process does not return. */
 	panic("enter_new_process returned\n");
 	return EINVAL;

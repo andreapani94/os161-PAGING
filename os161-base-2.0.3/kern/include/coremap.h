@@ -11,13 +11,14 @@ struct coremap_entry {
     vaddr_t vaddr;
     paddr_t paddr;     
     bool is_free;
+    uint32_t alloc_size;
 };
 
 void coremap_init(void);
 paddr_t coremap_alloc(vaddr_t);
 paddr_t coremap_kalloc(unsigned);
 void coremap_free(paddr_t);
-void coremap_kfree(paddr_t, unsigned);
+void coremap_kfree(paddr_t);
 paddr_t coremap_replace(void);
 
 #endif

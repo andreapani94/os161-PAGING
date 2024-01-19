@@ -403,6 +403,8 @@ defoption waitpid
 
 defoption filesys
 
+defoption args
+
 defoption paging
 
 optfile   paging    vm/vmstats.c

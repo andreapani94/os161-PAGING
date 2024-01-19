@@ -39,3 +39,4 @@ options syscalls
 options synch           # Needed to make the waitpid work
 options waitpid         # LAB 4
 options filesys         # LAB 5
+#options args            # optional topic of LAB 5

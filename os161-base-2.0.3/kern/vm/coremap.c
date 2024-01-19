@@ -155,11 +155,12 @@ coremap_free(paddr_t paddr)
 }
 
 void
-coremap_kfree(paddr_t paddr, unsigned nframes)
+coremap_kfree(paddr_t paddr)
 {
-    uint32_t i;
+    uint32_t i, nframes;
 
     KASSERT(COREMAP_INDEX(paddr) < num_frames);
+    nframes = coremap[COREMAP_INDEX(paddr)].alloc_size;
     for (i = 0; i < nframes; i++) {
         coremap[COREMAP_INDEX(paddr) + i].is_free = true;
     }
@@ -197,9 +198,13 @@ coremap_kalloc(unsigned npages)
         if (found) {
             /* mark frames as allocated */
             for (i = 0; i < (last - first)+1; i++) {
+                if (i == 0) {
+                    coremap[first+i].alloc_size = npages;
+                }
                 coremap[first+i].paddr = (first+i) * PAGE_SIZE;
                 coremap[first+i].is_free = false;
             }
+
         } else {
             coremap_replace();
         }

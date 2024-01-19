@@ -10,8 +10,8 @@ file_syscalls.o: ../../syscall/file_syscalls.c ../../include/types.h \
  opt-filesys.h ../../include/thread.h ../../include/array.h \
  ../../include/threadlist.h includelinks/machine/thread.h \
  ../../include/setjmp.h includelinks/kern/machine/setjmp.h \
- ../../include/addrspace.h ../../include/vm.h includelinks/machine/vm.h \
- opt-paging.h ../../include/segments.h ../../include/vnode.h \
- ../../include/pt.h opt-dumbvm.h ../../include/vfs.h ../../include/uio.h \
- ../../include/kern/iovec.h ../../include/current.h \
+ ../../include/addrspace.h ../../include/pt.h ../../include/vm.h \
+ includelinks/machine/vm.h opt-paging.h ../../include/segments.h \
+ ../../include/vnode.h opt-dumbvm.h ../../include/vfs.h \
+ ../../include/uio.h ../../include/kern/iovec.h ../../include/current.h \
  includelinks/machine/current.h ../../include/kern/errno.h

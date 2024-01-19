@@ -27,4 +27,7 @@ print_vm_stats(void)
     if (vms.vms_tlbreloads + vms.vms_pagefaultsdisk + vms.vms_pagefaultszeroed != vms.vms_tlbfaults) {
         kprintf("!!!Warning: TLB Faults should be equal to TLB Reloads + Page Faults (Disk) + Page Faults (Zeroed)!!!\n");
     }
+    if (vms.vms_pagefaultself + vms.vms_pagefaultsswapfile != vms.vms_pagefaultsdisk) {
+        kprintf("!!!Warning: Page Faults from Disk should be equal to Page Fauls from ELF + Page Faults (Disk)!!!\n");
+    }
 }

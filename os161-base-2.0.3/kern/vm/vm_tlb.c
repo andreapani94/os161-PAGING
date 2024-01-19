@@ -39,7 +39,6 @@ vmtlb_insert(vaddr_t vaddr, paddr_t paddr, bool iswritable)
         } else {
             elo = paddr | TLBLO_VALID;
         }
-        //kprintf("tlb %u: 0x%x -> 0x%x\n", i, ehi, elo);
         tlb_write(ehi, elo, i);
         /* TLB Faults with Free */
         vms.vms_tlbfaultsfree++;
@@ -61,7 +60,6 @@ vmtlb_insert(vaddr_t vaddr, paddr_t paddr, bool iswritable)
     if (iswritable) {
         elo = elo | TLBLO_DIRTY;
     }
-    //kprintf("tlb %u: 0x%x -> 0x%x\n", (uint32_t) victim, ehi, elo);
     tlb_write(ehi, elo, (uint32_t) victim);
     /* TLB Faults with Replace */
     vms.vms_tlbfaultsreplace++;

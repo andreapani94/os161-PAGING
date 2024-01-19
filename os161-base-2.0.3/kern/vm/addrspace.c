@@ -105,7 +105,13 @@ as_destroy(struct addrspace *as)
 	 * Clean up as needed.
 	 */
 	#if OPT_PAGING
+	int i;
 	// kfree every page table open using a for loop
+	for (i = 0; i < OUTER_PT_SIZE; i++) {
+		if (as->page_table[i] != NULL) {
+			kfree(as->page_table[i]);
+		}
+	}
 	/* close the ELF file */
 	vfs_close(as->segments[0].elf_file);
 	kfree(as->segments);

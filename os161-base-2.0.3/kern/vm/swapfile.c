@@ -10,7 +10,6 @@
 #include <bitmap.h>
 
 static struct vnode* swapfile = NULL;
-static struct swapfile_entry* swapfile_map = NULL;
 static struct spinlock swapfile_lock = SPINLOCK_INITIALIZER;
 static struct bitmap* swapfile_freeentries = NULL;
 
@@ -28,16 +27,6 @@ swapfile_init()
     }
     KASSERT(swapfile != NULL);
 
-    /* Initialize the swapfile map */
-    /* for page retreival in the file */
-    swapfile_map = kmalloc(sizeof(struct swapfile_entry) * SWAPFILE_MAX_PAGES);
-    if (swapfile_map == NULL) {
-        kprintf("Cannot initialize swapfile map...\n");
-        return ENOMEM;
-    }
-    KASSERT(swapfile_map != NULL);
-    bzero(swapfile_map, sizeof(struct swapfile_entry) * SWAPFILE_MAX_PAGES);
-    /* Initialize the bitmap of free entries */
     swapfile_freeentries = bitmap_create(SWAPFILE_MAX_PAGES);
     if (swapfile_freeentries == NULL) {
         panic("Cannot initialize swapfile free bitmap...\n");
@@ -109,6 +98,8 @@ swapfile_readpage(paddr_t frame, uint32_t swap_index)
 
     /* Page Faults from Swapfile */
     vms.vms_pagefaultsswapfile++;
+    /* Page Faults from Disk */
+    vms.vms_pagefaultsdisk++;
 
     return 0;
 }
@@ -117,7 +108,6 @@ void
 swapfile_shutdown()
 {
     bitmap_destroy(swapfile_freeentries);
-    kfree(swapfile_map);
     /* close the SWAPFILE */
     vfs_close(swapfile);
 

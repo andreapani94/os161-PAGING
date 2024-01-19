@@ -94,6 +94,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	    case VM_FAULT_READONLY:
 			/* Handle the read-only case by terminating the process */
 			sys__exit(1);
+			kprintf("Readonly fault: process has been terminated\n");
 			break;
 	    case VM_FAULT_READ:
 	    case VM_FAULT_WRITE:
@@ -219,8 +220,10 @@ alloc_kpages(unsigned npages)
 void 
 free_kpages(vaddr_t addr)
 {
-
-    (void) addr;
+	if (vm_initialized) {
+		paddr_t paddr = addr - MIPS_KSEG0; 
+		coremap_kfree(paddr);
+	}
 }
 
 void 

@@ -9,6 +9,6 @@ proc.o: ../../proc/proc.c ../../include/types.h \
  ../../include/array.h ../../include/lib.h opt-noasserts.h \
  ../../include/threadlist.h includelinks/machine/thread.h \
  ../../include/setjmp.h includelinks/kern/machine/setjmp.h \
- ../../include/addrspace.h ../../include/vm.h includelinks/machine/vm.h \
- opt-paging.h ../../include/segments.h ../../include/vnode.h \
- ../../include/pt.h opt-dumbvm.h
+ ../../include/addrspace.h ../../include/pt.h ../../include/vm.h \
+ includelinks/machine/vm.h opt-paging.h ../../include/segments.h \
+ ../../include/vnode.h opt-dumbvm.h

@@ -93,8 +93,8 @@ vm_fault(int faulttype, vaddr_t faultaddress)
     switch (faulttype) {
 	    case VM_FAULT_READONLY:
 			/* Handle the read-only case by terminating the process */
+			kprintf("Read-only memory fault, terminating the process...\n");
 			sys__exit(1);
-			kprintf("Readonly fault: process has been terminated\n");
 			break;
 	    case VM_FAULT_READ:
 	    case VM_FAULT_WRITE:

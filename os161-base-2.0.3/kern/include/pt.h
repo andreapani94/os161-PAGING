@@ -11,19 +11,6 @@
 struct addrspace;
 struct segment;
 
-/*
-struct pt_entry_1 {
-    struct pt_entry_2* inner_pt;
-};
-
-struct pt_entry_2 {
-    paddr_t paddr;
-    bool valid;
-    bool dirty;
-    bool swapped;
-}; */
-
-
 struct pt_entry {
     paddr_t paddr;  // this will hold the SWAPFILE index in case of swapped pages 
     bool valid;

@@ -10,16 +10,6 @@
 #include <coremap.h>
 
 int
-mydumbtest(int nargs, char** args)
-{
-    (void)nargs;
-	(void)args;
-
-    kprintf("This is some dumb test!...\n");
-    return 0;
-}
-
-int
 tlbtest(int nargs, char** args)
 {
     (void)nargs;

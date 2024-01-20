@@ -53,7 +53,7 @@ segments_before_load(struct segment* s, vaddr_t vaddr, paddr_t* paddr, uint32_t*
         *page_size = PAGE_SIZE;
         *elf_offset = s->elf_segment_start + first_psize + ((page_index-1) * PAGE_SIZE);
     } else {
-        //page_size = PAGE_SIZE - s->elf_top_offset; ?
+        
     }
 
     return;
